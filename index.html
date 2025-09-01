@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>EduQuestMaths – Grade 9 SA </title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#111827; --card:#fff; --accent:#f59e0b;
+    --ok:#10b981; --bad:#ef4444; --muted:#64748b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; font-family:'Inter', sans-serif;
+    background: radial-gradient(1200px 600px at 30% -10%, #1f2937, var(--bg));
+    color:#e5e7eb; padding:24px;}
+  h1{text-align:center; margin:0 0 16px;}
+  .toolbar{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:16px;}
+  .stat{display:flex; align-items:center;}
+  .pill{padding:6px 12px; border-radius:999px; background:#0b1220; border:1px solid #1f2937;}
+  .btn{appearance:none; border:none; border-radius:999px; padding:8px 16px; font-weight:700; cursor:pointer;
+    transition:transform .2s, background .2s;}
+  .btn.primary{background:var(--accent); color:var(--bg);}
+  .btn:hover{transform:scale(1.05);}
+  .btn:disabled{opacity:.5; cursor:not-allowed; transform:none;}
+  .pill.ok{color:var(--ok);}
+  .pill.bad{color:var(--bad);}
+  .controls-group{display:flex; flex-wrap:wrap; gap:12px;}
+  .controls-group label, .controls-group select{
+    font-size:14px; color:var(--muted); text-transform:uppercase; font-weight:bold;
+  }
+  .controls-group select{
+    background:var(--panel); border-radius:6px; padding:4px 8px; border:1px solid #1f2937; color:#e5e7eb;
+  }
+  .controls-group option{color:#e5e7eb;}
+  .question-panel{background:var(--panel); border-radius:12px; padding:24px; text-align:center; min-height:120px;
+    display:flex; flex-direction:column; justify-content:center; align-items:center; box-shadow:0 8px 16px rgba(0,0,0,.3);}
+  .question-text{font-size:24px; font-weight:700;}
+  .question-hint{font-size:16px; color:var(--muted); margin-top:12px;}
+  .game-area{display:flex; justify-content:center; align-items:center; gap:24px; margin-top:24px; flex-wrap:wrap; min-height:300px;}
+  .card-container{
+    display:flex; flex-direction:column; gap:12px; width:100%; max-width:250px;
+    position:relative; z-index:1;
+  }
+  .card-container .title{text-align:center; font-weight:700;}
+  .card-slot-area{
+    min-height:200px; padding:12px; border-radius:12px;
+    display:flex; flex-wrap:wrap; align-content:flex-start; justify-content:center;
+    gap:8px;
+  }
+  .draw-pile{background:var(--panel); border:2px solid #1f2937; box-shadow:0 4px 8px rgba(0,0,0,.2);}
+  .chain-area{
+    display:flex; flex-direction:column; align-items:center; gap:12px;
+    background:var(--panel); border-radius:12px; padding:24px;
+    flex:1;
+  }
+  .chain-slots{display:flex; justify-content:center; gap:12px; flex-wrap:wrap;}
+  .card{
+    background:var(--card); color:var(--bg); padding:12px; border-radius:8px;
+    font-weight:700; min-width:80px; text-align:center; cursor:pointer;
+    transition:transform .2s, box-shadow .2s;
+    box-shadow:0 2px 4px rgba(0,0,0,.1);
+    white-space:nowrap;
+  }
+  .card:hover{transform:translateY(-2px); box-shadow:0 4px 8px rgba(0,0,0,.2);}
+  .card.dragging{opacity:0.5; transform:scale(0.9);}
+  .card-slot{
+    border:2px dashed var(--muted); border-radius:8px; padding:8px;
+    min-width:100px; min-height:48px;
+    display:flex; align-items:center; justify-content:center;
+    transition:border-color .3s;
+  }
+  .card-slot.drag-over{border-color:var(--accent);}
+  .card-slot.correct{border-color:var(--ok);}
+  .card-slot.incorrect{border-color:var(--bad);}
+  .card-slot .card{cursor:default;}
+  .discard-pile{background:#293347; border:2px solid #3c4962; min-height:100px; min-width:100px;}
+  .toast-container{
+    position:fixed; bottom:24px; right:24px; z-index:100;
+    display:flex; flex-direction:column; gap:8px; align-items:flex-end;
+  }
+  .toast{
+    background:#333; color:#fff; padding:12px 24px; border-radius:999px;
+    animation:fadeInOut 3s forwards; box-shadow:0 4px 8px rgba(0,0,0,.2);
+  }
+  @keyframes fadeInOut{
+    0%{opacity:0; transform:translateY(20px);}
+    10%{opacity:1; transform:translateY(0);}
+    90%{opacity:1; transform:translateY(0);}
+    100%{opacity:0; transform:translateY(20px);}
+  }
+  .user-info{
+    background: var(--panel);
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: bold;
+    margin-bottom: 16px;
+  }
+  .game-stats {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .score-info {
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--ok);
+  }
+  .score-label {
+    font-size: 12px;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+
+<div class="user-info">
+  <span id="userIdDisplay">Loading user...</span>
+</div>
+
+<h1>EduQuestMaths</h1>
+<div class="toolbar">
+  <div class="controls-group">
+    <label for="categorySelect">Category:</label>
+    <select id="categorySelect"></select>
+    <label for="difficultySelect">Difficulty:</label>
+    <select id="difficultySelect"></select>
+  </div>
+  <div class="stat">
+    <span class="pill">⏱ <span id="timerEl">60</span>s</span>
+    <span class="pill ok">✅ <span id="correctScoreEl">0</span></span>
+    <span class="pill bad">❌ <span id="incorrectScoreEl">0</span></span>
+  </div>
+</div>
+
+<div class="question-panel">
+  <div class="question-text" id="questionText"></div>
+  <div class="question-hint" id="questionHint"></div>
+</div>
+
+<div class="game-area">
+  <div class="card-container">
+    <div class="title">Draw Pile</div>
+    <div class="card-slot-area draw-pile" id="drawPile"></div>
+  </div>
+
+  <div class="chain-area">
+    <div class="title">Solution Chain</div>
+    <div class="chain-slots" id="chainSlots"></div>
+  </div>
+
+  <div class="card-container">
+    <div class="title">Discard Pile</div>
+    <div class="card-slot-area discard-pile" id="discardPile"></div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <div class="controls-group">
+    <button id="hintBtn" class="btn">Give Hint</button>
+  </div>
+  <div class="controls-group">
+    <button id="restartBtn" class="btn primary">Restart</button>
+    <button id="nextBtn" class="btn primary" disabled>Next Question</button>
+  </div>
+</div>
+
+<div class="toast-container"></div>
+
+<script type="module">
+  // Firebase imports
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+  import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, collection, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+  // Data from questions.json embedded directly to avoid fetch errors
+  const questionsData = [
+    {
+        "text": "Compute: 1/4 + 3/8",
+        "solution": [
+            "Find a common denominator: 1/4 = 2/8.",
+            "2/8 + 3/8 = 5/8.",
+            "Answer: 5/8"
+        ],
+        "distractors": [
+            "Answer: 4/12",
+            "Answer: 1/2",
+            "Answer: 4/8"
+        ],
+        "category": "Operations with numbers",
+        "difficulty": "Easy"
+    },
+    {
+        "text": "Compute: 0.75 x 1.2",
+        "solution": [
+            "Multiply 75 by 12, which is 900.",
+            "Since there are three decimal places in total (two in 0.75 and one in 1.2), the answer is 0.900.",
+            "Answer: 0.9"
+        ],
+        "distractors": [
+            "Answer: 9.0",
+            "Answer: 0.09",
+            "Answer: 0.85"
+        ],
+        "category": "Operations with numbers",
+        "difficulty": "Medium"
+    },
+    {
+        "text": "What is 15% of 240?",
+        "solution": [
+            "Convert the percentage to a decimal: 15% = 0.15.",
+            "Multiply 0.15 by 240.",
+            "0.15 x 240 = 36.",
+            "Answer: 36"
+        ],
+        "distractors": [
+            "Answer: 15",
+            "Answer: 24",
+            "Answer: 360"
+        ],
+        "category": "Operations with numbers",
+        "difficulty": "Easy"
+    },
+    {
+        "text": "The price of an item is reduced by 20%. The new price is $80. What was the original price?",
+        "solution": [
+            "The new price ($80) is 100% - 20% = 80% of the original price.",
+            "Let x be the original price. 0.80x = 80.",
+            "x = 80 / 0.80 = 100.",
+            "Answer: $100"
+        ],
+        "distractors": [
+            "Answer: $96",
+            "Answer: $64",
+            "Answer: $120"
+        ],
+        "category": "Operations with numbers",
+        "difficulty": "Hard"
+    },
+    {
+        "text": "The length of a rectangle is 5 cm more than its width. If the perimeter is 30 cm, what is the length?",
+        "solution": [
+            "Let w be the width. The length is w + 5.",
+            "Perimeter = 2(w + l) = 2(w + w + 5) = 2(2w + 5) = 4w + 10.",
+            "4w + 10 = 30 => 4w = 20 => w = 5.",
+            "Length = w + 5 = 5 + 5 = 10.",
+            "Answer: 10 cm"
+        ],
+        "distractors": [
+            "Answer: 5 cm",
+            "Answer: 8 cm",
+            "Answer: 12.5 cm"
+        ],
+        "category": "Geometry and Measurement - Perimeter",
+        "difficulty": "Medium"
+    },
+    {
+        "text": "A container holds 2.5 litres of liquid. How many 250 ml glasses can be filled from it?",
+        "solution": [
+            "Convert litres to millilitres: 2.5 L = 2500 ml.",
+            "Divide the total volume by the glass volume: 2500 / 250.",
+            "2500 / 250 = 10.",
+            "Answer: 10 glasses"
+        ],
+        "distractors": [
+            "Answer: 100 glasses",
+            "Answer: 5 glasses",
+            "Answer: 25 glasses"
+        ],
+        "category": "Geometry and Measurement - Volume",
+        "difficulty": "Easy"
+    },
+    {
+        "text": "What is the area of a circle with a radius of 5 cm? (Use $π ≈ 3.14$)",
+        "solution": [
+            "The area of a circle is given by the formula $A = πr^2$.",
+            "$A = 3.14 \\times (5)^2 = 3.14 \\times 25$.",
+            "$A = 78.5$.",
+            "Answer: 78.5 $cm^2$"
+        ],
+        "distractors": [
+            "Answer: 15.7 $cm^2$",
+            "Answer: 31.4 $cm^2$",
+            "Answer: 10 $cm^2$"
+        ],
+        "category": "Geometry and Measurement - Area",
+        "difficulty": "Medium"
+    },
+    {
+        "text": "The formula for the volume of a sphere is $V = \\frac{4}{3}πr^3$. Find the volume of a sphere with a radius of 3 m. (Use $π ≈ 3.14$)",
+        "solution": [
+            "Substitute r = 3 into the formula: $V = \\frac{4}{3} \\times 3.14 \\times (3)^3$.",
+            "$V = \\frac{4}{3} \\times 3.14 \\times 27$.",
+            "$V = 4 \\times 3.14 \\times 9 = 113.04$.",
+            "Answer: 113.04 $m^3$"
+        ],
+        "distractors": [
+            "Answer: 36 $m^3$",
+            "Answer: 84.78 $m^3$",
+            "Answer: 150.72 $m^3$"
+        ],
+        "category": "Geometry and Measurement - Volume",
+        "difficulty": "Hard"
+    },
+    {
+        "text": "Find the value of x in the equation $2x + 5 = 11$.",
+        "solution": [
+            "Subtract 5 from both sides: $2x = 11 - 5$.",
+            "Simplify: $2x = 6$.",
+            "Divide by 2: $x = 6 / 2 = 3$.",
+            "Answer: x = 3"
+        ],
+        "distractors": [
+            "Answer: x = 8",
+            "Answer: x = 6",
+            "Answer: x = 2"
+        ],
+        "category": "Number and Algebra - Equations",
+        "difficulty": "Easy"
+    },
+    {
+        "text": "Solve for y in the equation $4(y - 2) = 12$.",
+        "solution": [
+            "Divide both sides by 4: $y - 2 = 12 / 4 = 3$.",
+            "Add 2 to both sides: $y = 3 + 2 = 5$.",
+            "Answer: y = 5"
+        ],
+        "distractors": [
+            "Answer: y = 4",
+            "Answer: y = 2",
+            "Answer: y = 7"
+        ],
+        "category": "Number and Algebra - Equations",
+        "difficulty": "Medium"
+    },
+    {
+        "text": "Find the value of x in the equation $3x + 10 = x - 6$.",
+        "solution": [
+            "Subtract x from both sides: $2x + 10 = -6$.",
+            "Subtract 10 from both sides: $2x = -16$.",
+            "Divide by 2: $x = -8$.",
+            "Answer: x = -8"
+        ],
+        "distractors": [
+            "Answer: x = -2",
+            "Answer: x = 2",
+            "Answer: x = 8"
+        ],
+        "category": "Number and Algebra - Equations",
+        "difficulty": "Hard"
+    },
+    {
+        "text": "Expand the expression: $(a + 3)(a - 2)$.",
+        "solution": [
+            "Use the FOIL method: First, Outer, Inner, Last.",
+            "$(a)(a) + (a)(-2) + (3)(a) + (3)(-2) = a^2 - 2a + 3a - 6$.",
+            "Combine like terms: $a^2 + a - 6$.",
+            "Answer: $a^2 + a - 6$"
+        ],
+        "distractors": [
+            "Answer: $a^2 - 6$",
+            "Answer: $a^2 + 5a - 6$",
+            "Answer: $a^2 + a + 6$"
+        ],
+        "category": "Number and Algebra - Expressions",
+        "difficulty": "Medium"
+    },
+    {
+        "text": "Factorize the expression: $x^2 + 7x + 12$.",
+        "solution": [
+            "Find two numbers that multiply to 12 and add to 7.",
+            "The numbers are 3 and 4 (since $3 \\times 4 = 12$ and $3 + 4 = 7$).",
+            "The factored form is $(x+3)(x+4)$.",
+            "Answer: $(x+3)(x+4)$"
+        ],
+        "distractors": [
+            "Answer: $(x+6)(x+2)$",
+            "Answer: $(x+1)(x+12)$",
+            "Answer: $(x-3)(x-4)$"
+        ],
+        "category": "Number and Algebra - Expressions",
+        "difficulty": "Hard"
+    },
+    {
+        "text": "What is the common difference of the sequence defined by $T_n = 7 - 2n$?",
+        "solution": [
+            "The common difference in a linear sequence $T_n = dn+c$ is the coefficient of n.",
+            "Answer: -2"
+        ],
+        "distractors": [
+            "Answer: 7",
+            "Answer: 2",
+            "Answer: 5"
+        ],
+        "category": "Number and Algebra - Sequences",
+        "difficulty": "Medium"
+    },
+    {
+        "text": "An arithmetic sequence has a first term of -10 and a common difference of 4. Find the 5th term.",
+        "solution": [
+            "Use the formula $T_n = a + (n-1)d$.",
+            "$T_5 = -10 + (5-1) \\times 4 = -10 + 4 \\times 4 = -10 + 16$.",
+            "Answer: 6"
+        ],
+        "distractors": [
+            "Answer: 10",
+            "Answer: -26",
+            "Answer: 14"
+        ],
+        "category": "Number and Algebra - Sequences",
+        "difficulty": "Easy"
+    },
+    {
+        "text": "A geometric sequence starts with 1000 and has a common ratio of 0.1. What is the 4th term?",
+        "solution": [
+            "$T_1 = 1000$.",
+            "$T_2 = 1000 \\times 0.1 = 100$.",
+            "$T_3 = 100 \\times 0.1 = 10$.",
+            "$T_4 = 10 \\times 0.1 = 1$.",
+            "Answer: 1"
+        ],
+        "distractors": [
+            "Answer: 10",
+            "Answer: 0.01",
+            "Answer: 0.1"
+        ],
+        "category": "Number and Algebra - Sequences",
+        "difficulty": "Medium"
+    },
+    {
+        "text": "Compute: 15.6 - 8.25",
+        "solution": [
+            "Align the decimal points and subtract.",
+            "15.60 - 8.25 = 7.35.",
+            "Answer: 7.35"
+        ],
+        "distractors": [
+            "Answer: 7.45",
+            "Answer: 6.35",
+            "Answer: 7.25"
+        ],
+        "category": "Operations with numbers",
+        "difficulty": "Easy"
+    },
+    {
+        "text": "Compute: 12.5 \\times 4",
+        "solution": [
+            "Multiply as whole numbers: 125 \\times 4 = 500.",
+            "Place the decimal point back in, one place from the right.",
+            "Answer: 50.0"
+        ],
+        "distractors": [
+            "Answer: 5.0",
+            "Answer: 500",
+            "Answer: 500.0"
+        ],
+        "category": "Operations with numbers",
+        "difficulty": "Easy"
+    },
+    {
+        "text": "What is 30% of 90?",
+        "solution": [
+            "Convert 30% to a decimal: 0.30.",
+            "Multiply 0.30 \\times 90 = 27.",
+            "Answer: 27"
+        ],
+        "distractors": [
+            "Answer: 3",
+            "Answer: 9",
+            "Answer: 2.7"
+        ],
+        "category": "Operations with numbers",
+        "difficulty": "Easy"
+    },
+    {
+        "text": "A sequence is defined by T1 = 3 and Tn = 2 \\times T_{n-1} + 1. What is the 3rd term?",
+        "solution": [
+            "Find the 2nd term first: T2 = 2 \\times T1 + 1 = 2 \\times 3 + 1 = 7.",
+            "Find the 3rd term: T3 = 2 \\times T2 + 1 = 2 \\times 7 + 1 = 15.",
+            "Answer: 15"
+        ],
+        "distractors": [
+            "Answer: 10",
+            "Answer: 14",
+            "Answer: 16"
+        ],
+        "category": "Sequences",
+        "difficulty": "Hard"
+    },
+    {
+        "text": "The first term of an arithmetic sequence is 10 and the common difference is -2. What is the 6th term?",
+        "solution": [
+            "T6 = a + (6 - 1)d.",
+            "T6 = 10 + 5 \\times (-2) = 10 - 10 = 0.",
+            "Answer: 0"
+        ],
+        "distractors": [
+            "Answer: 20",
+            "Answer: -2",
+            "Answer: 8"
+        ],
+        "category": "Sequences",
+        "difficulty": "Medium"
+    },
+    {
+        "text": "Find the 4th term of a geometric sequence whose rule is $T_n = 5 \\times 2^{n-1}$.",
+        "solution": [
+            "Substitute n = 4 into the rule.",
+            "$T_4 = 5 \\times 2^{4-1} = 5 \\times 2^3 = 5 \\times 8 = 40$.",
+            "Answer: 40"
+        ],
+        "distractors": [
+            "Answer: 20",
+            "Answer: 10",
+            "Answer: 80"
+        ],
+        "category": "Sequences",
+        "difficulty": "Medium"
+    },
+    {
+        "text": "A sequence is defined by the rule Tn = 5n - 1. What is the 8th term?",
+        "solution": [
+            "Substitute n = 8 into the rule.",
+            "T8 = 5(8) - 1 = 40 - 1 = 39.",
+            "Answer: 39"
+        ],
+        "distractors": [
+            "Answer: 40",
+            "Answer: 35",
+            "Answer: 41"
+        ],
+        "category": "Sequences",
+        "difficulty": "Easy"
+    },
+    {
+        "text": "The first term of an arithmetic sequence is 25 and the 4th term is 16. Find the common difference.",
+        "solution": [
+            "Use the formula Tn = a + (n-1)d. T4 = 25 + (4-1)d = 16.",
+            "25 + 3d = 16.",
+            "3d = 16 - 25 = -9.",
+            "d = -3.",
+            "Answer: -3"
+        ],
+        "distractors": [
+            "Answer: 3",
+            "Answer: -9",
+            "Answer: 9"
+        ],
+        "category": "Sequences",
+        "difficulty": "Hard"
+    },
+    {
+        "text": "The 3rd term of a geometric sequence is 12 and the common ratio is 2. What is the first term?",
+        "solution": [
+            "Use the formula $T_n = ar^{n-1}$. $T_3 = a \\times 2^{3-1} = 12$.",
+            "$a \\times 2^2 = 12 \\implies a \\times 4 = 12$.",
+            "Divide by 4: $a = 3$.",
+            "Answer: 3"
+        ],
+        "distractors": [
+            "Answer: 6",
+            "Answer: 1.5",
+            "Answer: 24"
+        ],
+        "category": "Sequences",
+        "difficulty": "Hard"
+    },
+    {
+        "text": "Compute: 3 + 7",
+        "solution": [
+            "Add 3 and 7",
+            "Answer: 10"
+        ],
+        "distractors": [
+            "Answer: -4",
+            "Answer: 21",
+            "Answer: 12"
+        ],
+        "category": "Operations",
+        "difficulty": "Easy"
+    },
+    {
+        "text": "Compute: -18 - -8",
+        "solution": [
+            "Take away -8 from -18",
+            "Answer: -10"
+        ],
+        "distractors": [
+            "Answer: -26",
+            "Answer: 10",
+            "Answer: -9"
+        ],
+        "category": "Operations",
+        "difficulty": "Easy"
+    },
+    {
+        "text": "Compute: -5 - -6",
+        "solution": [
+            "Take away -6 from -5",
+            "Answer: 1"
+        ],
+        "distractors": [
+            "Answer: -11",
+            "Answer: -1",
+            "Answer: 2"
+        ],
+        "category": "Operations",
+        "difficulty": "Easy"
+    },
+    {
+        "text": "Compute: -5 + 9",
+        "solution": [
+            "Add -5 and 9",
+            "Answer: 4"
+        ],
+        "distractors": [
+            "Answer: -14",
+            "Answer: -45",
+            "Answer: 6"
+        ],
+        "category": "Operations",
+        "difficulty": "Easy"
+    }
+];
+
+  // Firestore log level
+  setLogLevel('debug');
+
+  // --- Firebase and Firestore Setup ---
+  let db, auth;
+  let userId = 'loading...';
+  let isAuthReady = false;
+  const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+  const userIdDisplay = document.getElementById('userIdDisplay');
+
+  // Firestore functions must be defined before they are called
+  const saveScores = async () => {
+    if (!isAuthReady) return;
+    try {
+      const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/gameData/solitaireScores`);
+      await setDoc(userDocRef, {
+        correctScore: correctScore,
+        incorrectScore: incorrectScore,
+        lastUpdated: new Date()
+      }, { merge: true });
+      console.log("Scores saved successfully!");
+    } catch (e) {
+      console.error("Error saving scores:", e);
+    }
+  };
+
+  const loadScores = async () => {
+    if (!isAuthReady) return;
+    try {
+      const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/gameData/solitaireScores`);
+      const docSnap = await getDoc(userDocRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        correctScore = data.correctScore || 0;
+        incorrectScore = data.incorrectScore || 0;
+        correctScoreEl.textContent = correctScore;
+        incorrectScoreEl.textContent = incorrectScore;
+        console.log("Scores loaded successfully!");
+      }
+    } catch (e) {
+      console.error("Error loading scores:", e);
+    }
+  };
+
+  try {
+      const firebaseConfig = JSON.parse(__firebase_config);
+      const app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+      auth = getAuth(app);
+      setPersistence(auth, browserSessionPersistence);
+      
+      onAuthStateChanged(auth, async (user) => {
+          if (user) {
+              userId = user.uid;
+              userIdDisplay.textContent = `User ID: ${userId}`;
+              isAuthReady = true;
+              await loadScores();
+          } else {
+              userId = crypto.randomUUID();
+              userIdDisplay.textContent = `User ID: ${userId}`;
+              isAuthReady = true;
+          }
+      });
+
+      if (typeof __initial_auth_token !== 'undefined') {
+          await signInWithCustomToken(auth, __initial_auth_token);
+      } else {
+          await signInAnonymously(auth);
+      }
+  } catch (e) {
+      console.error("Firebase initialization failed:", e);
+      userIdDisplay.textContent = 'Auth failed, using temporary ID';
+      userId = 'temp-user-' + crypto.randomUUID();
+      isAuthReady = true;
+  }
+
+  // --- Game State & Elements ---
+  const questionText = document.getElementById("questionText");
+  const questionHint = document.getElementById("questionHint");
+  const drawPile = document.getElementById("drawPile");
+  const chainSlots = document.getElementById("chainSlots");
+  const discardPile = document.getElementById("discardPile");
+  const timerEl = document.getElementById("timerEl");
+  const correctScoreEl = document.getElementById("correctScoreEl");
+  const incorrectScoreEl = document.getElementById("incorrectScoreEl");
+  const hintBtn = document.getElementById("hintBtn");
+  const restartBtn = document.getElementById("restartBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  const categorySelect = document.getElementById("categorySelect");
+  const difficultySelect = document.getElementById("difficultySelect");
+
+  let questions = [];
+  let currentQuestion = null;
+  let drawCards = [];
+  let chainCards = [];
+  let discardCards = [];
+  let time = 60;
+  let timerId = null;
+  let correctScore = 0;
+  let incorrectScore = 0;
+
+  // --- Game Logic ---
+  function loadQuestions() {
+    questions = questionsData;
+  }
+
+  function initSelectors() {
+    const categories = [...new Set(questions.map(q => q.category))];
+    const difficulties = [...new Set(questions.map(q => q.difficulty))];
+
+    // Add 'All' options
+    categories.unshift("All");
+    difficulties.unshift("All");
+
+    categorySelect.innerHTML = '';
+    difficulties.forEach(diff => {
+      const option = document.createElement('option');
+      option.value = diff;
+      option.textContent = diff;
+      difficultySelect.appendChild(option);
+    });
+
+    categories.forEach(cat => {
+      const option = document.createElement('option');
+      option.value = cat;
+      option.textContent = cat;
+      categorySelect.appendChild(option);
+    });
+  }
+
+  function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+  }
+
+  function loadQuestion() {
+    // Clear previous state
+    clearInterval(timerId);
+    timerId = null;
+    time = 60;
+    timerEl.textContent = time;
+    drawCards = [];
+    chainCards = [];
+    discardCards = [];
+    nextBtn.disabled = true;
+    questionHint.textContent = '';
+    
+    // Filter questions based on selected category and difficulty
+    const selectedCategory = categorySelect.value;
+    const selectedDifficulty = difficultySelect.value;
+    const filteredQuestions = questions.filter(q =>
+      (selectedCategory === 'All' || q.category === selectedCategory) &&
+      (selectedDifficulty === 'All' || q.difficulty === selectedDifficulty)
+    );
+    
+    // Select a random question
+    if (filteredQuestions.length === 0) {
+      toast("No questions found for this selection.");
+      return;
+    }
+    currentQuestion = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
+
+    // Populate question and cards
+    questionText.innerHTML = currentQuestion.text;
+
+    // Create cards for solution and distractors
+    const allCards = currentQuestion.solution.map((s, i) => ({
+      id: `s-${i}`,
+      text: s,
+      isCorrect: true,
+      originalIndex: i
+    })).concat(
+      currentQuestion.distractors.map((d, i) => ({
+        id: `d-${i}`,
+        text: d,
+        isCorrect: false
+      }))
+    );
+    shuffle(allCards);
+    drawCards = allCards;
+    chainCards = Array(currentQuestion.solution.length).fill(null);
+    
+    renderPiles();
+    renderChainSlots();
+    
+    // Render math expressions
+    if (typeof MathJax !== 'undefined') {
+      MathJax.typesetPromise();
+    }
+  }
+
+  function renderPiles() {
+    drawPile.innerHTML = '';
+    discardPile.innerHTML = '';
+
+    drawCards.forEach(card => {
+      const cardEl = createCardElement(card);
+      drawPile.appendChild(cardEl);
+    });
+    
+    discardCards.forEach(card => {
+      const cardEl = createCardElement(card);
+      discardPile.appendChild(cardEl);
+    });
+    
+    // Re-render math expressions after new cards are added
+    if (typeof MathJax !== 'undefined') {
+      MathJax.typesetPromise();
+    }
+  }
+
+  function renderChainSlots() {
+    chainSlots.innerHTML = '';
+    chainCards.forEach((card, index) => {
+      const slot = document.createElement("div");
+      slot.classList.add("card-slot");
+      slot.dataset.index = index;
+      slot.addEventListener("dragover", e => e.preventDefault());
+      slot.addEventListener("drop", onSlotDrop);
+      if (card) {
+        const cardEl = createCardElement(card);
+        slot.appendChild(cardEl);
+      }
+      chainSlots.appendChild(slot);
+    });
+    // Re-render math expressions after new slots are added
+    if (typeof MathJax !== 'undefined') {
+      MathJax.typesetPromise();
+    }
+  }
+  
+  function createCardElement(card) {
+    const el = document.createElement("div");
+    el.classList.add("card");
+    el.textContent = card.text;
+    el.draggable = true;
+    el.dataset.id = card.id;
+    el.addEventListener("dragstart", e => {
+      e.dataTransfer.setData("text/plain", card.id);
+      e.dataTransfer.dropEffect = "move";
+      setTimeout(() => el.classList.add("dragging"), 0);
+    });
+    el.addEventListener("dragend", () => el.classList.remove("dragging"));
+    return el;
+  }
+  
+  function onSlotDrop(e) {
+    e.preventDefault();
+    startTimerOnce();
+    const slot = e.currentTarget;
+    const cardId = e.dataTransfer.getData("text/plain");
+    const card = drawCards.find(c => c.id === cardId);
+    
+    if (card) {
+      const slotIndex = parseInt(slot.dataset.index, 10);
+      
+      // Check if the card is a valid next step
+      let isCorrectOrder = false;
+      if (card.isCorrect && card.originalIndex === slotIndex && chainCards[slotIndex] === null) {
+        isCorrectOrder = true;
+      }
+      
+      if (isCorrectOrder) {
+        chainCards[slotIndex] = card;
+        drawCards = drawCards.filter(c => c.id !== cardId);
+        
+        slot.innerHTML = '';
+        const droppedCardEl = createCardElement(card);
+        slot.appendChild(droppedCardEl);
+        slot.classList.add("correct");
+        
+        checkWinCondition();
+      } else {
+        const cardEl = drawPile.querySelector(`[data-id='${cardId}']`);
+        if(cardEl) {
+          cardEl.remove();
+        }
+        discardCards.push(card);
+        discardPile.appendChild(createCardElement(card));
+        
+        toast("❌ Incorrect step. Try again.", 1500);
+      }
+      renderPiles();
+    }
+  }
+
+  function checkWinCondition() {
+    const allSlotsFilled = chainCards.every(card => card !== null);
+    if (allSlotsFilled) {
+      clearInterval(timerId);
+      lockGame();
+      correctScore++;
+      correctScoreEl.textContent = correctScore;
+      saveScores();
+      toast("🎉 Correct! All steps are in place.", 2500);
+      nextBtn.disabled = false;
+    }
+  }
+
+  function highlightHint() {
+    if (chainCards.every(c => c !== null)) return;
+    const nextEmptySlotIndex = chainCards.findIndex(c => c === null);
+    
+    if (nextEmptySlotIndex !== -1) {
+      const hintText = currentQuestion.solution[nextEmptySlotIndex];
+      questionHint.innerHTML = `Hint: Find the card that says "${hintText}" and place it in the next empty slot.`;
+    }
+    toast("💡 Hint revealed", 2500);
+  }
+
+  function startTimerOnce() {
+    if (timerId) return;
+    timerId = setInterval(() => {
+      time--;
+      timerEl.textContent = time;
+      if (time <= 0) {
+        clearInterval(timerId);
+        lockGame();
+        toast("⏱ Time up!");
+        nextBtn.disabled = false;
+        incorrectScore++;
+        incorrectScoreEl.textContent = incorrectScore;
+        saveScores();
+      }
+    }, 1000);
+  }
+
+  function lockGame() {
+    document.querySelectorAll(".card").forEach(el => el.draggable = false);
+    document.querySelectorAll(".card-slot").forEach(slot => {
+        slot.removeEventListener("drop", onSlotDrop);
+        slot.classList.remove('drag-over');
+    });
+  }
+  
+  function toast(msg, duration = 3000) {
+    const container = document.querySelector('.toast-container');
+    const el = document.createElement('div');
+    el.classList.add('toast');
+    el.textContent = msg;
+    container.appendChild(el);
+    setTimeout(() => el.remove(), duration);
+  }
+  
+  /* ===========================
+     EVENT LISTENERS & INIT
+  =========================== */
+  hintBtn.addEventListener("click", highlightHint);
+  restartBtn.addEventListener("click", loadQuestion);
+  nextBtn.addEventListener("click", loadQuestion);
+  categorySelect.addEventListener("change", loadQuestion);
+  difficultySelect.addEventListener("change", loadQuestion);
+  
+  drawPile.addEventListener("dragover", e => e.preventDefault());
+  drawPile.addEventListener("drop", e => {
+    e.preventDefault();
+    const cardId = e.dataTransfer.getData("text/plain");
+    const cardIndex = discardCards.findIndex(c => c.id === cardId);
+    if (cardIndex !== -1) {
+      const card = discardCards.splice(cardIndex, 1)[0];
+      drawCards.push(card);
+      renderPiles();
+      toast("✅ Card restored to draw pile!", 1200);
+    }
+  });
+  
+  // Initialize
+  window.onload = function() {
+    loadQuestions();
+    initSelectors();
+    loadQuestion();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('Service Worker registered', reg))
+        .catch(err => console.error('Service Worker registration failed', err));
+    }
+  };
+  
+</script>
+
+</body>
+</html>
