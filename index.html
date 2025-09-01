@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>EduQuestMaths – Grade 9 SA </title>
+<title>EduQuestMath – Grade 9 SA</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,6 +25,7 @@
   .btn{appearance:none; border:none; border-radius:999px; padding:8px 16px; font-weight:700; cursor:pointer;
     transition:transform .2s, background .2s;}
   .btn.primary{background:var(--accent); color:var(--bg);}
+  .btn.gemini{background: #50c48e; color: #0b1220;}
   .btn:hover{transform:scale(1.05);}
   .btn:disabled{opacity:.5; cursor:not-allowed; transform:none;}
   .pill.ok{color:var(--ok);}
@@ -118,15 +119,60 @@
     font-size: 12px;
     color: var(--muted);
   }
+
+  /* --- Mobile Optimizations --- */
+  @media (max-width: 768px) {
+    body {
+      padding: 16px;
+    }
+
+    .toolbar {
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .question-panel {
+      padding: 16px;
+    }
+
+    .question-text {
+      font-size: 20px;
+    }
+
+    .game-area {
+      flex-direction: column;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .card-container {
+      max-width: none;
+      width: 100%;
+    }
+
+    .chain-area {
+      padding: 16px;
+    }
+
+    .chain-slots {
+      gap: 8px;
+    }
+    
+    .card {
+      padding: 10px;
+      font-size: 14px;
+    }
+  }
 </style>
 </head>
 <body>
 
 <div class="user-info">
-  <span id="userIdDisplay">Loading user...</span>
+  <span id="userIdDisplay">User ID loading...</span>
 </div>
 
-<h1>EduQuestMaths</h1>
+<h1>EduQuestMath</h1>
 <div class="toolbar">
   <div class="controls-group">
     <label for="categorySelect">Category:</label>
@@ -166,6 +212,8 @@
 <div class="toolbar">
   <div class="controls-group">
     <button id="hintBtn" class="btn">Give Hint</button>
+    <button id="geminiHintBtn" class="btn gemini">✨ Chat Hint</button>
+    <button id="speakBtn" class="btn gemini">✨ Speak Question</button>
   </div>
   <div class="controls-group">
     <button id="restartBtn" class="btn primary">Restart</button>
@@ -174,17 +222,18 @@
 </div>
 
 <div class="toast-container"></div>
+<audio id="audioPlayer"></audio>
 
 <script type="module">
   // Firebase imports
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-  import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-  import { getFirestore, doc, setDoc, getDoc, collection, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+  import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
   // Data from questions.json embedded directly to avoid fetch errors
   const questionsData = [
     {
-        "text": "Compute: 1/4 + 3/8",
+        "text": "Calculate: 1/4 + 3/8",
         "solution": [
             "Find a common denominator: 1/4 = 2/8.",
             "2/8 + 3/8 = 5/8.",
@@ -199,7 +248,7 @@
         "difficulty": "Easy"
     },
     {
-        "text": "Compute: 0.75 x 1.2",
+        "text": "Calculate: 0.75 x 1.2",
         "solution": [
             "Multiply 75 by 12, which is 900.",
             "Since there are three decimal places in total (two in 0.75 and one in 1.2), the answer is 0.900.",
@@ -216,7 +265,7 @@
     {
         "text": "What is 15% of 240?",
         "solution": [
-            "Convert the percentage to a decimal: 15% = 0.15.",
+            "Convert the percentage to a decimal number: 15% = 0.15.",
             "Multiply 0.15 by 240.",
             "0.15 x 240 = 36.",
             "Answer: 36"
@@ -230,17 +279,17 @@
         "difficulty": "Easy"
     },
     {
-        "text": "The price of an item is reduced by 20%. The new price is $80. What was the original price?",
+        "text": "The price of an item was reduced by 20%. The new price is \\$80. What was the original price?",
         "solution": [
-            "The new price ($80) is 100% - 20% = 80% of the original price.",
+            "The new price (\\$80) is 100% - 20% = 80% of the original price.",
             "Let x be the original price. 0.80x = 80.",
             "x = 80 / 0.80 = 100.",
-            "Answer: $100"
+            "Answer: \\$100"
         ],
         "distractors": [
-            "Answer: $96",
-            "Answer: $64",
-            "Answer: $120"
+            "Answer: \\$96",
+            "Answer: \\$64",
+            "Answer: \\$120"
         ],
         "category": "Operations with numbers",
         "difficulty": "Hard"
@@ -263,9 +312,9 @@
         "difficulty": "Medium"
     },
     {
-        "text": "A container holds 2.5 litres of liquid. How many 250 ml glasses can be filled from it?",
+        "text": "A container holds 2.5 liters of liquid. How many 250 ml glasses can be filled from it?",
         "solution": [
-            "Convert litres to millilitres: 2.5 L = 2500 ml.",
+            "Convert liters to milliliters: 2.5 L = 2500 ml.",
             "Divide the total volume by the glass volume: 2500 / 250.",
             "2500 / 250 = 10.",
             "Answer: 10 glasses"
@@ -436,96 +485,6 @@
         "difficulty": "Medium"
     },
     {
-        "text": "Compute: 15.6 - 8.25",
-        "solution": [
-            "Align the decimal points and subtract.",
-            "15.60 - 8.25 = 7.35.",
-            "Answer: 7.35"
-        ],
-        "distractors": [
-            "Answer: 7.45",
-            "Answer: 6.35",
-            "Answer: 7.25"
-        ],
-        "category": "Operations with numbers",
-        "difficulty": "Easy"
-    },
-    {
-        "text": "Compute: 12.5 \\times 4",
-        "solution": [
-            "Multiply as whole numbers: 125 \\times 4 = 500.",
-            "Place the decimal point back in, one place from the right.",
-            "Answer: 50.0"
-        ],
-        "distractors": [
-            "Answer: 5.0",
-            "Answer: 500",
-            "Answer: 500.0"
-        ],
-        "category": "Operations with numbers",
-        "difficulty": "Easy"
-    },
-    {
-        "text": "What is 30% of 90?",
-        "solution": [
-            "Convert 30% to a decimal: 0.30.",
-            "Multiply 0.30 \\times 90 = 27.",
-            "Answer: 27"
-        ],
-        "distractors": [
-            "Answer: 3",
-            "Answer: 9",
-            "Answer: 2.7"
-        ],
-        "category": "Operations with numbers",
-        "difficulty": "Easy"
-    },
-    {
-        "text": "A sequence is defined by T1 = 3 and Tn = 2 \\times T_{n-1} + 1. What is the 3rd term?",
-        "solution": [
-            "Find the 2nd term first: T2 = 2 \\times T1 + 1 = 2 \\times 3 + 1 = 7.",
-            "Find the 3rd term: T3 = 2 \\times T2 + 1 = 2 \\times 7 + 1 = 15.",
-            "Answer: 15"
-        ],
-        "distractors": [
-            "Answer: 10",
-            "Answer: 14",
-            "Answer: 16"
-        ],
-        "category": "Sequences",
-        "difficulty": "Hard"
-    },
-    {
-        "text": "The first term of an arithmetic sequence is 10 and the common difference is -2. What is the 6th term?",
-        "solution": [
-            "T6 = a + (6 - 1)d.",
-            "T6 = 10 + 5 \\times (-2) = 10 - 10 = 0.",
-            "Answer: 0"
-        ],
-        "distractors": [
-            "Answer: 20",
-            "Answer: -2",
-            "Answer: 8"
-        ],
-        "category": "Sequences",
-        "difficulty": "Medium"
-    },
-    {
-        "text": "Find the 4th term of a geometric sequence whose rule is $T_n = 5 \\times 2^{n-1}$.",
-        "solution": [
-            "Substitute n = 4 into the rule.",
-            "$T_4 = 5 \\times 2^{4-1} = 5 \\times 2^3 = 5 \\times 8 = 40$.",
-            "Answer: 40"
-        ],
-        "distractors": [
-            "Answer: 20",
-            "Answer: 10",
-            "Answer: 80"
-        ],
-        "category": "Sequences",
-        "difficulty": "Medium"
-    },
-    {
         "text": "A sequence is defined by the rule Tn = 5n - 1. What is the 8th term?",
         "solution": [
             "Substitute n = 8 into the rule.",
@@ -574,7 +533,7 @@
         "difficulty": "Hard"
     },
     {
-        "text": "Compute: 3 + 7",
+        "text": "Calculate: 3 + 7",
         "solution": [
             "Add 3 and 7",
             "Answer: 10"
@@ -588,9 +547,9 @@
         "difficulty": "Easy"
     },
     {
-        "text": "Compute: -18 - -8",
+        "text": "Calculate: -18 - -8",
         "solution": [
-            "Take away -8 from -18",
+            "Subtract -8 from -18",
             "Answer: -10"
         ],
         "distractors": [
@@ -602,9 +561,9 @@
         "difficulty": "Easy"
     },
     {
-        "text": "Compute: -5 - -6",
+        "text": "Calculate: -5 - -6",
         "solution": [
-            "Take away -6 from -5",
+            "Subtract -6 from -5",
             "Answer: 1"
         ],
         "distractors": [
@@ -616,7 +575,7 @@
         "difficulty": "Easy"
     },
     {
-        "text": "Compute: -5 + 9",
+        "text": "Calculate: -5 + 9",
         "solution": [
             "Add -5 and 9",
             "Answer: 4"
@@ -628,347 +587,1936 @@
         ],
         "category": "Operations",
         "difficulty": "Easy"
-    }
-];
+    },
+  {
+    "text": "Calculate: 25 + 37",
+    "solution": [
+      "25 + 37 = 62",
+      "Answer: 62"
+    ],
+    "distractors": [
+      "Answer: 52",
+      "Answer: 63",
+      "Answer: 60"
+    ],
+    "category": "Integers",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate: 84 - 29",
+    "solution": [
+      "84 - 29 = 55",
+      "Answer: 55"
+    ],
+    "distractors": [
+      "Answer: 45",
+      "Answer: 56",
+      "Answer: 54"
+    ],
+    "category": "Integers",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate: 18 × 7",
+    "solution": [
+      "18 × 7 = 126",
+      "Answer: 126"
+    ],
+    "distractors": [
+      "Answer: 136",
+      "Answer: 108",
+      "Answer: 124"
+    ],
+    "category": "Operations",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Calculate: 96 ÷ 12",
+    "solution": [
+      "96 ÷ 12 = 8",
+      "Answer: 8"
+    ],
+    "distractors": [
+      "Answer: 12",
+      "Answer: 6",
+      "Answer: 9"
+    ],
+    "category": "Operations",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Is 37 a prime number?",
+    "solution": [
+      "37 only has two factors: 1 and 37",
+      "Answer: Yes"
+    ],
+    "distractors": [
+      "Answer: No, it is divisible by 3",
+      "Answer: No, it is divisible by 7",
+      "Answer: No, it is divisible by 9"
+    ],
+    "category": "Prime Numbers",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Find the LCM of 12 and 18",
+    "solution": [
+      "Multiples of 12: 12, 24, 36...",
+      "Multiples of 18: 18, 36...",
+      "Least common multiple = 36",
+      "Answer: 36"
+    ],
+    "distractors": [
+      "Answer: 24",
+      "Answer: 30",
+      "Answer: 48"
+    ],
+    "category": "Multiples",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Round 456 to the nearest ten",
+    "solution": [
+      "456's units digit is 6 → round up",
+      "Answer: 460"
+    ],
+    "distractors": [
+      "Answer: 450",
+      "Answer: 400",
+      "Answer: 500"
+    ],
+    "category": "Rounding",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Round 328 to the nearest hundred",
+    "solution": [
+      "328's tens digit is 2 (<5) → round down",
+      "Answer: 300"
+    ],
+    "distractors": [
+      "Answer: 320",
+      "Answer: 330",
+      "Answer: 400"
+    ],
+    "category": "Rounding",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate: -5 + 9",
+    "solution": [
+      "-5 + 9 = 4",
+      "Answer: 4"
+    ],
+    "distractors": [
+      "Answer: -14",
+      "Answer: -45",
+      "Answer: 6"
+    ],
+    "category": "Integers",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate: -12 − (−7)",
+    "solution": [
+      "-12 − (−7) = -12 + 7",
+      "-12 + 7 = -5",
+      "Answer: -5"
+    ],
+    "distractors": [
+      "Answer: -19",
+      "Answer: 19",
+      "Answer: 5"
+    ],
+    "category": "Integers",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Calculate: -8 × -6",
+    "solution": [
+      "Negative × Negative = Positive",
+      "8 × 6 = 48",
+      "Answer: 48"
+    ],
+    "distractors": [
+      "Answer: -48",
+      "Answer: 14",
+      "Answer: -14"
+    ],
+    "category": "Integers",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate: -56 ÷ 7",
+    "solution": [
+      "-56 ÷ 7 = -8",
+      "Answer: -8"
+    ],
+    "distractors": [
+      "Answer: 8",
+      "Answer: -7",
+      "Answer: 7"
+    ],
+    "category": "Integers",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate: 2/3 + 1/6",
+    "solution": [
+      "2/3 = 4/6",
+      "4/6 + 1/6 = 5/6",
+      "Answer: 5/6"
+    ],
+    "distractors": [
+      "Answer: 3/9",
+      "Answer: 1/2",
+      "Answer: 7/6"
+    ],
+    "category": "Fractions",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Calculate: 7/8 − 3/8",
+    "solution": [
+      "7/8 − 3/8 = 4/8",
+      "4/8 = 1/2",
+      "Answer: 1/2"
+    ],
+    "distractors": [
+      "Answer: 3/8",
+      "Answer: 5/8",
+      "Answer: 2/8"
+    ],
+    "category": "Fractions",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate: 3/5 × 10",
+    "solution": [
+      "3/5 × 10 = 30/5 = 6",
+      "Answer: 6"
+    ],
+    "distractors": [
+      "Answer: 5",
+      "Answer: 8",
+      "Answer: 10"
+    ],
+    "category": "Fractions",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate: (2/3) ÷ (4/5)",
+    "solution": [
+      "2/3 ÷ 4/5 = 2/3 × 5/4 = 10/12",
+      "10/12 = 5/6",
+      "Answer: 5/6"
+    ],
+    "distractors": [
+      "Answer: 6/5",
+      "Answer: 2/15",
+      "Answer: 8/15"
+    ],
+    "category": "Fractions",
+    "difficulty": "Hard"
+  },
+  {
+    "text": "Write 0.75 as a fraction",
+    "solution": [
+      "0.75 = 75/100 = 3/4",
+      "Answer: 3/4"
+    ],
+    "distractors": [
+      "Answer: 2/3",
+      "Answer: 7/10",
+      "Answer: 1/2"
+    ],
+    "category": "Decimals",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Write 3/8 as a decimal",
+    "solution": [
+      "3 ÷ 8 = 0.375",
+      "Answer: 0.375"
+    ],
+    "distractors": [
+      "Answer: 0.35",
+      "Answer: 0.385",
+      "Answer: 0.33"
+    ],
+    "category": "Decimals",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Round 4.678 to 2 decimal places",
+    "solution": [
+      "4.678 → 4.68",
+      "Answer: 4.68"
+    ],
+    "distractors": [
+      "Answer: 4.67",
+      "Answer: 4.70",
+      "Answer: 4.60"
+    ],
+    "category": "Decimals",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate: 12.5 + 3.75",
+    "solution": [
+      "12.5 + 3.75 = 16.25",
+      "Answer: 16.25"
+    ],
+    "distractors": [
+      "Answer: 15.25",
+      "Answer: 16.35",
+      "Answer: 17.25"
+    ],
+    "category": "Decimals",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate: 7.2 − 4.89",
+    "solution": [
+      "7.2 − 4.89 = 2.31",
+      "Answer: 2.31"
+    ],
+    "distractors": [
+      "Answer: 3.21",
+      "Answer: 2.21",
+      "Answer: 2.41"
+    ],
+    "category": "Decimals",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Calculate: 6.4 × 0.5",
+    "solution": [
+      "6.4 × 0.5 = 3.2",
+      "Answer: 3.2"
+    ],
+    "distractors": [
+      "Answer: 32",
+      "Answer: 0.32",
+      "Answer: 2.8"
+    ],
+    "category": "Decimals",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate: 9 ÷ 0.25",
+    "solution": [
+      "9 ÷ 0.25 = 36",
+      "Answer: 36"
+    ],
+    "distractors": [
+      "Answer: 45",
+      "Answer: 3.6",
+      "Answer: 18"
+    ],
+    "category": "Decimals",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Calculate: 15% of 240",
+    "solution": [
+      "15% = 15/100",
+      "15/100 × 240 = 36",
+      "Answer: 36"
+    ],
+    "distractors": [
+      "Answer: 35",
+      "Answer: 32",
+      "Answer: 40"
+    ],
+    "category": "Percentage",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Calculate: If 4 apples cost R12, what is the cost of 10 apples?",
+    "solution": [
+      "R12 ÷ 4 = R3 per apple",
+      "10 × R3 = R30",
+      "Answer: R30"
+    ],
+    "distractors": [
+      "Answer: R28",
+      "Answer: R36",
+      "Answer: R32"
+    ],
+    "category": "Ratio",
+    "difficulty": "Hard"
+  },
+  {
+    "text": "Calculate: 145 + 286",
+    "solution": [
+      "145 + 286 = 431",
+      "Answer: 431"
+    ],
+    "distractors": [
+      "Answer: 421",
+      "Answer: 441",
+      "Answer: 423"
+    ],
+    "category": "Integers",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate: 1000 − 457",
+    "solution": [
+      "1000 − 457 = 543",
+      "Answer: 543"
+    ],
+    "distractors": [
+      "Answer: 537",
+      "Answer: 453",
+      "Answer: 553"
+    ],
+    "category": "Integers",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate: 24 × 15",
+    "solution": [
+      "24 × 15 = 360",
+      "Answer: 360"
+    ],
+    "distractors": [
+      "Answer: 350",
+      "Answer: 370",
+      "Answer: 380"
+    ],
+    "category": "Operations",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Calculate: 720 ÷ 8",
+    "solution": [
+      "720 ÷ 8 = 90",
+      "Answer: 90"
+    ],
+    "distractors": [
+      "Answer: 80",
+      "Answer: 95",
+      "Answer: 85"
+    ],
+    "category": "Operations",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Find the GCF of 16 and 24",
+    "solution": [
+      "Factors of 16: 1, 2, 4, 8, 16",
+      "Factors of 24: 1, 2, 3, 4, 6, 8, 12, 24",
+      "Greatest common factor = 8",
+      "Answer: 8"
+    ],
+    "distractors": [
+      "Answer: 4",
+      "Answer: 12",
+      "Answer: 16"
+    ],
+    "category": "Factors",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Round 783 to the nearest hundred",
+    "solution": [
+      "783's tens digit is 8 (>5) → round up",
+      "Answer: 800"
+    ],
+    "distractors": [
+      "Answer: 780",
+      "Answer: 700",
+      "Answer: 880"
+    ],
+    "category": "Rounding",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate: -4 × -12",
+    "solution": [
+      "Negative × Negative = Positive",
+      "4 × 12 = 48",
+      "Answer: 48"
+    ],
+    "distractors": [
+      "Answer: -48",
+      "Answer: 16",
+      "Answer: -16"
+    ],
+    "category": "Integers",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate: -48 ÷ -12",
+    "solution": [
+      "Negative ÷ Negative = Positive",
+      "48 ÷ 12 = 4",
+      "Answer: 4"
+    ],
+    "distractors": [
+      "Answer: -4",
+      "Answer: 36",
+      "Answer: -12"
+    ],
+    "category": "Integers - Division",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Calculate: 3/4 + 5/8",
+    "solution": [
+      "Make denominators equal: 3/4 = 6/8",
+      "6/8 + 5/8 = 11/8",
+      "Answer: 11/8 or 1 3/8"
+    ],
+    "distractors": [
+      "Answer: 8/12",
+      "Answer: 2/8",
+      "Answer: 9/8"
+    ],
+    "category": "Fractions - Addition",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Calculate: 7/10 − 2/5",
+    "solution": [
+      "2/5 = 4/10",
+      "7/10 − 4/10 = 3/10",
+      "Answer: 3/10"
+    ],
+    "distractors": [
+      "Answer: 5/10",
+      "Answer: 1/2",
+      "Answer: 9/10"
+    ],
+    "category": "Fractions - Subtraction",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate: 5/6 × 3/4",
+    "solution": [
+      "Numerators: 5×3=15",
+      "Denominators: 6×4=24",
+      "15/24 = 5/8",
+      "Answer: 5/8"
+    ],
+    "distractors": [
+      "Answer: 15/18",
+      "Answer: 8/5",
+      "Answer: 2/3"
+    ],
+    "category": "Fractions - Multiplication",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Calculate: 7/9 ÷ 2/3",
+    "solution": [
+      "Divide by a fraction = multiply by its reciprocal",
+      "7/9 × 3/2 = 21/18 = 7/6",
+      "Answer: 7/6 or 1 1/6"
+    ],
+    "distractors": [
+      "Answer: 14/27",
+      "Answer: 5/6",
+      "Answer: 3/5"
+    ],
+    "category": "Fractions - Division",
+    "difficulty": "Hard"
+  },
+  {
+    "text": "Arrange in order from smallest to largest: 1/2, 2/3, 3/4",
+    "solution": [
+      "Make denominators equal or compare decimal form",
+      "1/2=0.5, 2/3≈0.67, 3/4=0.75",
+      "Order: 1/2, 2/3, 3/4"
+    ],
+    "distractors": [
+      "Order: 3/4, 2/3, 1/2",
+      "Order: 2/3, 1/2, 3/4",
+      "Order: 1/2, 3/4, 2/3"
+    ],
+    "category": "Fractions - Comparison",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Solve: 2/5 of 30",
+    "solution": [
+      "(2/5) × 30 = 60/5",
+      "Answer: 12"
+    ],
+    "distractors": [
+      "Answer: 6",
+      "Answer: 10",
+      "Answer: 15"
+    ],
+    "category": "Fractions - Problem Solving",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Write 0.375 as a fraction in simplest form",
+    "solution": [
+      "0.375 = 375/1000",
+      "Simplify: 3/8",
+      "Answer: 3/8"
+    ],
+    "distractors": [
+      "Answer: 37/50",
+      "Answer: 5/8",
+      "Answer: 7/16"
+    ],
+    "category": "Decimals - Conversion",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Write 7/20 as a decimal",
+    "solution": [
+      "7 ÷ 20 = 0.35",
+      "Answer: 0.35"
+    ],
+    "distractors": [
+      "Answer: 0.75",
+      "Answer: 0.7",
+      "Answer: 0.25"
+    ],
+    "category": "Decimals - Conversion",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate: 4.75 + 3.6",
+    "solution": [
+      "4.75 + 3.6 = 8.35",
+      "Answer: 8.35"
+    ],
+    "distractors": [
+      "Answer: 7.35",
+      "Answer: 9.35",
+      "Answer: 7.25"
+    ],
+    "category": "Decimals - Addition",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate: 9.2 − 4.85",
+    "solution": [
+      "9.20 − 4.85 = 4.35",
+      "Answer: 4.35"
+    ],
+    "distractors": [
+      "Answer: 3.35",
+      "Answer: 5.35",
+      "Answer: 4.25"
+    ],
+    "category": "Decimals - Subtraction",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Calculate: 1.25 × 0.4",
+    "solution": [
+      "1.25 × 0.4 = 0.50",
+      "Answer: 0.50"
+    ],
+    "distractors": [
+      "Answer: 5.00",
+      "Answer: 0.45",
+      "Answer: 0.125"
+    ],
+    "category": "Decimals - Multiplication",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate: 9 ÷ 0.3",
+    "solution": [
+      "9 ÷ 0.3 = 90 ÷ 3 = 30",
+      "Answer: 30"
+    ],
+    "distractors": [
+      "Answer: 3",
+      "Answer: 27",
+      "Answer: 0.33"
+    ],
+    "category": "Decimals - Division",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Round 56.789 to 1 decimal place",
+    "solution": [
+      "56.789 ≈ 56.8",
+      "Answer: 56.8"
+    ],
+    "distractors": [
+      "Answer: 56.7",
+      "Answer: 57",
+      "Answer: 56.9"
+    ],
+    "category": "Decimals - Rounding",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Solve: 25% of 320",
+    "solution": [
+      "25% = 1/4",
+      "1/4 × 320 = 80",
+      "Answer: 80"
+    ],
+    "distractors": [
+      "Answer: 60",
+      "Answer: 85",
+      "Answer: 75"
+    ],
+    "category": "Percentage",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "If 3 apples cost R12, what is the cost of 8 apples?",
+    "solution": [
+      "1 apple = R4",
+      "8 apples × R4 = R32",
+      "Answer: R32"
+    ],
+    "distractors": [
+      "Answer: R30",
+      "Answer: R28",
+      "Answer: R24"
+    ],
+    "category": "Ratio and Rate",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Solve: 18 is what percentage of 45?",
+    "solution": [
+      "18 ÷ 45 = 0.4",
+      "0.4 × 100 = 40%",
+      "Answer: 40%"
+    ],
+    "distractors": [
+      "Answer: 45%",
+      "Answer: 50%",
+      "Answer: 30%"
+    ],
+    "category": "Percentage",
+    "difficulty": "Hard"
+  },
+  {
+    "text": "Calculate: The area of a triangle with base 12 cm and height 8 cm.",
+    "solution": [
+      "Area = (1/2) × base × height",
+      "Area = (1/2) × 12 × 8 = 48 cm²",
+      "Answer: 48 cm²"
+    ],
+    "distractors": [
+      "Answer: 96 cm²",
+      "Answer: 20 cm²",
+      "Answer: 40 cm²"
+    ],
+    "category": "Area",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate: The perimeter of a square with side length 9 cm.",
+    "solution": [
+      "Perimeter = 4 × side",
+      "Perimeter = 4 × 9 = 36 cm",
+      "Answer: 36 cm"
+    ],
+    "distractors": [
+      "Answer: 81 cm",
+      "Answer: 18 cm",
+      "Answer: 27 cm"
+    ],
+    "category": "Perimeter",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate: The volume of a rectangular prism with length 5 cm, width 6 cm and height 7 cm.",
+    "solution": [
+      "Volume = length × width × height",
+      "Volume = 5 × 6 × 7 = 210 cm³",
+      "Answer: 210 cm³"
+    ],
+    "distractors": [
+      "Answer: 180 cm³",
+      "Answer: 240 cm³",
+      "Answer: 280 cm³"
+    ],
+    "category": "Volume",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Simplify: 5x + 3y + 2x - y",
+    "solution": [
+      "Group like terms: (5x + 2x) + (3y - y)",
+      "Simplify: 7x + 2y",
+      "Answer: 7x + 2y"
+    ],
+    "distractors": [
+      "Answer: 7x + 4y",
+      "Answer: 3x + 2y",
+      "Answer: 7x + y"
+    ],
+    "category": "Algebraic Expressions",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Expand: 3(4x - 5)",
+    "solution": [
+      "3 × 4x = 12x",
+      "3 × -5 = -15",
+      "Answer: 12x - 15"
+    ],
+    "distractors": [
+      "Answer: 12x + 15",
+      "Answer: 7x - 5",
+      "Answer: 12x + 5"
+    ],
+    "category": "Algebraic Expressions",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Simplify: 2x² × 5x³",
+    "solution": [
+      "2 × 5 = 10, x² × x³ = x⁵",
+      "Answer: 10x⁵"
+    ],
+    "distractors": [
+      "Answer: 7x⁵",
+      "Answer: 10x⁶",
+      "Answer: 10x²"
+    ],
+    "category": "Algebraic Expressions",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Calculate: 5⁴",
+    "solution": [
+      "5 × 5 × 5 × 5 = 625",
+      "Answer: 625"
+    ],
+    "distractors": [
+      "Answer: 20",
+      "Answer: 25",
+      "Answer: 125"
+    ],
+    "category": "Exponents",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Write 450000 in scientific notation",
+    "solution": [
+      "Move the decimal point 5 places to the left",
+      "Answer: 4.5 × 10⁵"
+    ],
+    "distractors": [
+      "Answer: 45 × 10⁴",
+      "Answer: 0.45 × 10⁶",
+      "Answer: 4.5 × 10⁶"
+    ],
+    "category": "Scientific Notation",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Solve for x: x + 7 = 11",
+    "solution": [
+      "x = 11 - 7",
+      "Answer: x = 4"
+    ],
+    "distractors": [
+      "Answer: x = 18",
+      "Answer: x = 5",
+      "Answer: x = 3"
+    ],
+    "category": "Linear Equations",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Solve for x: 3x - 5 = 10",
+    "solution": [
+      "3x = 10 + 5",
+      "3x = 15",
+      "x = 5",
+      "Answer: x = 5"
+    ],
+    "distractors": [
+      "Answer: x = 15",
+      "Answer: x = 3",
+      "Answer: x = 4"
+    ],
+    "category": "Linear Equations",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Solve for x: 2(x + 3) = 14",
+    "solution": [
+      "x + 3 = 14 ÷ 2",
+      "x + 3 = 7",
+      "x = 7 – 3",
+      "Answer: x = 4"
+    ],
+    "distractors": [
+      "Answer: x = 5",
+      "Answer: x = 3",
+      "Answer: x = 7"
+    ],
+    "category": "Linear Equations",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Solve for t: 4t/5 = 12",
+    "solution": [
+      "Multiply both sides by 5: 4t = 60",
+      "t = 60 ÷ 4",
+      "Answer: t = 15"
+    ],
+    "distractors": [
+      "Answer: t = 20",
+      "Answer: t = 12",
+      "Answer: t = 18"
+    ],
+    "category": "Linear Equations",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Solve word problem: If 3x + 5 = 20, what is x?",
+    "solution": [
+      "3x = 20 – 5",
+      "3x = 15",
+      "x = 5",
+      "Answer: 5"
+    ],
+    "distractors": [
+      "Answer: 4",
+      "Answer: 6",
+      "Answer: 7"
+    ],
+    "category": "Word Problems",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Simplify: 4x + 3 − 7",
+    "solution": [
+      "Combine the numbers: 3 − 7 = −4",
+      "Answer: 4x − 4"
+    ],
+    "distractors": [
+      "Answer: 4x + 4",
+      "Answer: 4x + 10",
+      "Answer: 4x − 7"
+    ],
+    "category": "Algebraic Expressions",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Simplify: 7a + 6b − 3a + 2b",
+    "solution": [
+      "7a − 3a = 4a, 6b + 2b = 8b",
+      "Answer: 4a + 8b"
+    ],
+    "distractors": [
+      "Answer: 10a + 8b",
+      "Answer: 4a + 6b",
+      "Answer: 7a + 6b"
+    ],
+    "category": "Algebraic Expressions",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Multiply: 4x × 6x²",
+    "solution": [
+      "4 × 6 = 24, x¹ × x² = x³",
+      "Answer: 24x³"
+    ],
+    "distractors": [
+      "Answer: 10x³",
+      "Answer: 24x²",
+      "Answer: 4x³"
+    ],
+    "category": "Algebraic Expressions - Multiplication",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Divide: 24x³ ÷ 8x",
+    "solution": [
+      "24 ÷ 8 = 3, x³ ÷ x = x²",
+      "Answer: 3x²"
+    ],
+    "distractors": [
+      "Answer: 3x³",
+      "Answer: 16x²",
+      "Answer: 3x³"
+    ],
+    "category": "Algebraic Expressions - Division",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Solve: 6x + 5 = 23",
+    "solution": [
+      "6x = 23 − 5",
+      "6x = 18",
+      "x = 18 ÷ 6",
+      "Answer: x = 3"
+    ],
+    "distractors": [
+      "Answer: x = 4",
+      "Answer: x = 2",
+      "Answer: x = 5"
+    ],
+    "category": "Linear Equations",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Solve: 7 − 3y = 1",
+    "solution": [
+      "-3y = 1 − 7",
+      "-3y = −6",
+      "y = −6 ÷ −3",
+      "Answer: y = 2"
+    ],
+    "distractors": [
+      "Answer: y = −2",
+      "Answer: y = 3",
+      "Answer: y = −3"
+    ],
+    "category": "Linear Equations",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Solve: 5(x + 4) = 25",
+    "solution": [
+      "x + 4 = 25 ÷ 5",
+      "x + 4 = 5",
+      "x = 1",
+      "Answer: x = 1"
+    ],
+    "distractors": [
+      "Answer: x = 2",
+      "Answer: x = 3",
+      "Answer: x = 0"
+    ],
+    "category": "Linear Equations",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Word problem: Three times a number plus 7 is 22. Find the number.",
+    "solution": [
+      "3x + 7 = 22",
+      "3x = 15",
+      "x = 5",
+      "Answer: 5"
+    ],
+    "distractors": [
+      "Answer: 4",
+      "Answer: 6",
+      "Answer: 7"
+    ],
+    "category": "Word Problems",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Plot the point (−2, 5) on the Cartesian plane.",
+    "solution": [
+      "Move 2 units left along x-axis and 5 units up along y-axis",
+      "Mark point: (−2, 5)"
+    ],
+    "distractors": [
+      "Answer: (2, −5)",
+      "Answer: (−5, 2)",
+      "Answer: (2, 5)"
+    ],
+    "category": "Graphs - Point Plotting",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Plot the point (0, −5) on the Cartesian plane.",
+    "solution": [
+      "x = 0 (on the y-axis)",
+      "Move 5 units down along the y-axis",
+      "Mark point: (0, −5)"
+    ],
+    "distractors": [
+      "Answer: (5, 0)",
+      "Answer: (−5, 0)",
+      "Answer: (0, 5)"
+    ],
+    "category": "Graphs - Point Plotting",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate the surface area of a cube with side 5 cm long.",
+    "solution": [
+      "Area = 6 × side² = 6 × 5² = 6 × 25 = 150 cm²",
+      "Answer: 150 cm²"
+    ],
+    "distractors": [
+      "Answer: 125 cm²",
+      "Answer: 100 cm²",
+      "Answer: 140 cm²"
+    ],
+    "category": "Surface Area - 3D",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Calculate the volume of a cube with side 7 cm long.",
+    "solution": [
+      "Volume = side³ = 7³ = 7 × 7 × 7 = 343 cm³",
+      "Answer: 343 cm³"
+    ],
+    "distractors": [
+      "Answer: 21 cm³",
+      "Answer: 49 cm³",
+      "Answer: 243 cm³"
+    ],
+    "category": "Volume - 3D",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Calculate the surface area of a rectangular prism with length 10 cm, width 5 cm and height 2 cm.",
+    "solution": [
+      "Surface area = 2(lw + lh + wh)",
+      "SA = 2(10×5 + 10×2 + 5×2) = 2(50 + 20 + 10) = 2(80) = 160 cm²",
+      "Answer: 160 cm²"
+    ],
+    "distractors": [
+      "Answer: 100 cm²",
+      "Answer: 150 cm²",
+      "Answer: 180 cm²"
+    ],
+    "category": "Surface Area - 3D",
+    "difficulty": "Hard"
+  },
+  {
+    "text": "Calculate the surface area of a cylinder with radius 5 cm and height 10 cm (π≈3,14).",
+    "solution": [
+      "Area = 2πr² + 2πrh",
+      "SA = 2×3,14×5² + 2×3,14×5×10 = 2×3,14×25 + 2×3,14×50",
+      "SA = 157 + 314 = 471 cm²",
+      "Answer: 471 cm²"
+    ],
+    "distractors": [
+      "Answer: 450 cm²",
+      "Answer: 460 cm²",
+      "Answer: 480 cm²"
+    ],
+    "category": "Surface Area - 3D",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Calculate the volume of a cylinder with radius 6 cm and height 8 cm (π≈3,14).",
+    "solution": [
+      "Volume = πr²h = 3,14×6²×8 = 3,14×36×8 ≈ 904,32 cm³",
+      "Answer: 904,32 cm³"
+    ],
+    "distractors": [
+      "Answer: 900 cm³",
+      "Answer: 910 cm³",
+      "Answer: 905 cm³"
+    ],
+    "category": "Volume - 3D",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "What is the mode of the data set: 5, 7, 7, 8, 9, 10?",
+    "solution": [
+      "Mode = 7 (appears most often)",
+      "Answer: 7"
+    ],
+    "distractors": [
+      "Answer: 8",
+      "Answer: 9",
+      "Answer: 10"
+    ],
+    "category": "Data Handling - Central Tendency",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate the mean of 8, 12, 15, 20.",
+    "solution": [
+      "Mean = (8+12+15+20)/4 = 55/4 = 13.75",
+      "Answer: 13.75"
+    ],
+    "distractors": [
+      "Answer: 13.5",
+      "Answer: 14",
+      "Answer: 13"
+    ],
+    "category": "Data Handling - Mean",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Find the median of the series: 7, 9, 11, 13, 15.",
+    "solution": [
+      "Median = middle value = 11",
+      "Answer: 11"
+    ],
+    "distractors": [
+      "Answer: 10",
+      "Answer: 12",
+      "Answer: 9"
+    ],
+    "category": "Data Handling - Median",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "What is the probability of drawing a red ball from a bag with 2 red, 3 blue and 5 green balls?",
+    "solution": [
+      "Probability = favorable / total = 2/10 = 1/5",
+      "Answer: 1/5"
+    ],
+    "distractors": [
+      "Answer: 1/2",
+      "Answer: 1/3",
+      "Answer: 1/10"
+    ],
+    "category": "Probability",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "What is the probability of rolling a 4 or 5 on a die?",
+    "solution": [
+      "Probability = 2 favorable outcomes / 6 = 1/3",
+      "Answer: 1/3"
+    ],
+    "distractors": [
+      "Answer: 1/2",
+      "Answer: 1/4",
+      "Answer: 1/6"
+    ],
+    "category": "Probability",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Translate the point (−5,−2) 6 units to the right and 3 units up.",
+    "solution": [
+      "New point = (−5+6,−2+3) = (1,1)",
+      "Answer: (1,1)"
+    ],
+    "distractors": [
+      "Answer: (−1,1)",
+      "Answer: (0,1)",
+      "Answer: (1,0)"
+    ],
+    "category": "Transformations - Translations",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Reflect the point (7,−4) over the x-axis.",
+    "solution": [
+      "Reflection over x-axis = (7,4)",
+      "Answer: (7,4)"
+    ],
+    "distractors": [
+      "Answer: (−7,4)",
+      "Answer: (7,−4)",
+      "Answer: (−7,−4)"
+    ],
+    "category": "Transformations - Reflections",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Rotate the point (−3,−8) 90° clockwise around the origin.",
+    "solution": [
+      "New point = (−8, 3)",
+      "Answer: (−8, 3)"
+    ],
+    "distractors": [
+      "Answer: (−3, 8)",
+      "Answer: (3, 8)",
+      "Answer: (8, −3)"
+    ],
+    "category": "Transformations - Rotations",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Calculate the surface area of a cone with radius 4 cm and slant height 7 cm (π≈3,14).",
+    "solution": [
+      "Surface area = πr(r+l) = 3,14×4(4+7) = 12,56(11) ≈ 138,16 cm²",
+      "Answer: 138,16 cm²"
+    ],
+    "distractors": [
+      "Answer: 120 cm²",
+      "Answer: 130 cm²",
+      "Answer: 150 cm²"
+    ],
+    "category": "Surface Area - 3D",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Calculate the surface area of a sphere with radius 8 cm (π≈3,14).",
+    "solution": [
+      "Surface area = 4πr² = 4×3,14×8² = 4×3,14×64 ≈ 803,84 cm²",
+      "Answer: 803,84 cm²"
+    ],
+    "distractors": [
+      "Answer: 800 cm²",
+      "Answer: 810 cm²",
+      "Answer: 805 cm²"
+    ],
+    "category": "Surface Area - 3D",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Calculate the volume of a cone with radius 5 cm and height 12 cm (π≈3,14).",
+    "solution": [
+      "Volume = (1/3)πr²h = (1/3)×3,14×5²×12 = (1/3)×3,14×25×12 ≈ 314 cm³",
+      "Answer: 314 cm³"
+    ],
+    "distractors": [
+      "Answer: 300 cm³",
+      "Answer: 320 cm³",
+      "Answer: 350 cm³"
+    ],
+    "category": "Volume - 3D",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Calculate the volume of a sphere with radius 6 cm (π≈3,14).",
+    "solution": [
+      "Volume = (4/3)πr³ = (4/3)×3,14×6³ = (4/3)×3,14×216 ≈ 904.32 cm³",
+      "Answer: 904.32 cm³"
+    ],
+    "distractors": [
+      "Answer: 900 cm³",
+      "Answer: 910 cm³",
+      "Answer: 905 cm³"
+    ],
+    "category": "Volume - 3D",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "What is the mode of the data set: 6, 8, 8, 9, 10, 10, 10?",
+    "solution": [
+      "Mode = 10",
+      "Answer: 10"
+    ],
+    "distractors": [
+      "Answer: 8",
+      "Answer: 9",
+      "Answer: 6"
+    ],
+    "category": "Data Handling - Central Tendency",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate the mean of 2, 5, 8, 11, 14.",
+    "solution": [
+      "Mean = (2+5+8+11+14)/5 = 40/5 = 8",
+      "Answer: 8"
+    ],
+    "distractors": [
+      "Answer: 7",
+      "Answer: 9",
+      "Answer: 8.5"
+    ],
+    "category": "Data Handling - Mean",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Find the median of the series: 1, 3, 5, 7, 9, 11, 13.",
+    "solution": [
+      "Median = middle value = 7",
+      "Answer: 7"
+    ],
+    "distractors": [
+      "Answer: 6",
+      "Answer: 8",
+      "Answer: 5"
+    ],
+    "category": "Data Handling - Median",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "What is the probability of choosing a red or blue ball from a bag with 3 red, 2 blue and 5 green balls?",
+    "solution": [
+      "Probability = (3+2)/10 = 5/10 = 1/2",
+      "Answer: 1/2"
+    ],
+    "distractors": [
+      "Answer: 1/3",
+      "Answer: 1/4",
+      "Answer: 2/3"
+    ],
+    "category": "Probability",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "If the probability of an event is 0.35, express it as a percentage.",
+    "solution": [
+      "0.35 × 100% = 35%",
+      "Answer: 35%"
+    ],
+    "distractors": [
+      "Answer: 30%",
+      "Answer: 40%",
+      "Answer: 32%"
+    ],
+    "category": "Probability",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Translate the point (−2,4) 3 units to the left and 6 units down.",
+    "solution": [
+      "New point = (−2−3,4−6) = (−5,−2)",
+      "Answer: (−5,−2)"
+    ],
+    "distractors": [
+      "Answer: (−5,2)",
+      "Answer: (−4,−3)",
+      "Answer: (−6,−2)"
+    ],
+    "category": "Transformations - Translations",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Reflect the point (4,−7) over the y-axis.",
+    "solution": [
+      "Reflection over y-axis = (−4,−7)",
+      "Answer: (−4,−7)"
+    ],
+    "distractors": [
+      "Answer: (4,7)",
+      "Answer: (−4,7)",
+      "Answer: (4,−7)"
+    ],
+    "category": "Transformations - Reflections",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Rotate the point (−6,2) 180° around the origin.",
+    "solution": [
+      "New point = (6,−2)",
+      "Answer: (6,−2)"
+    ],
+    "distractors": [
+      "Answer: (−6,−2)",
+      "Answer: (6,2)",
+      "Answer: (−2,6)"
+    ],
+    "category": "Transformations - Rotations",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Calculate the surface area of a cube with side 12 cm long.",
+    "solution": [
+      "Surface area = 6 × 12² = 6 × 144 = 864 cm²",
+      "Answer: 864 cm²"
+    ],
+    "distractors": [
+      "Answer: 850 cm²",
+      "Answer: 860 cm²",
+      "Answer: 870 cm²"
+    ],
+    "category": "Surface Area - 3D",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Calculate the volume of a rectangular prism with length 6 cm, width 7 cm and height 9 cm.",
+    "solution": [
+      "Volume = 6×7×9 = 378 cm³",
+      "Answer: 378 cm³"
+    ],
+    "distractors": [
+      "Answer: 370 cm³",
+      "Answer: 380 cm³",
+      "Answer: 385 cm³"
+    ],
+    "category": "Volume - 3D",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Calculate the surface area of a cylinder with radius 8 cm and height 10 cm (π≈3,14).",
+    "solution": [
+      "Surface area = 2πr² + 2πrh = 2×3,14×64 + 2×3,14×8×10 ≈ 401,92 + 502,4 = 904.32 cm²",
+      "Answer: 904.32 cm²"
+    ],
+    "distractors": [
+      "Answer: 900 cm²",
+      "Answer: 910 cm²",
+      "Answer: 905 cm²"
+    ],
+    "category": "Surface Area - 3D",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "Calculate the volume of a cylinder with radius 5 cm and height 14 cm (π≈3,14).",
+    "solution": [
+      "Volume = πr²h = 3,14×25×14 ≈ 1099 cm³",
+      "Answer: 1099 cm³"
+    ],
+    "distractors": [
+      "Answer: 1100 cm³",
+      "Answer: 1095 cm³",
+      "Answer: 1085 cm³"
+    ],
+    "category": "Volume - 3D",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "What is the mode of the data set: 1, 2, 2, 3, 3, 3, 4, 5.",
+    "solution": [
+      "Mode = 3",
+      "Answer: 3"
+    ],
+    "distractors": [
+      "Answer: 2",
+      "Answer: 1",
+      "Answer: 4"
+    ],
+    "category": "Data Handling - Central Tendency",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate the mean of 7, 9, 11, 13, 15.",
+    "solution": [
+      "Mean = (7+9+11+13+15)/5 = 55/5 = 11",
+      "Answer: 11"
+    ],
+    "distractors": [
+      "Answer: 10",
+      "Answer: 12",
+      "Answer: 13"
+    ],
+    "category": "Data Handling - Mean",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Find the median of the series: 3, 6, 9, 12, 15, 18.",
+    "solution": [
+      "Median = average of the two middle numbers = (9+12)/2 = 10.5",
+      "Answer: 10.5"
+    ],
+    "distractors": [
+      "Answer: 10",
+      "Answer: 11",
+      "Answer: 12"
+    ],
+    "category": "Data Handling - Median",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "What is the probability of rolling a 4 or 6 on a die?",
+    "solution": [
+      "Probability = 2/6 = 1/3",
+      "Answer: 1/3"
+    ],
+    "distractors": [
+      "Answer: 1/2",
+      "Answer: 1/4",
+      "Answer: 1/6"
+    ],
+    "category": "Probability",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "If the probability of an event is 0.25, express it as a percentage.",
+    "solution": [
+      "0.25 × 100% = 25%",
+      "Answer: 25%"
+    ],
+    "distractors": [
+      "Answer: 20%",
+      "Answer: 30%",
+      "Answer: 35%"
+    ],
+    "category": "Probability",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Translate the point (−1,3) 4 units to the right and 2 units down.",
+    "solution": [
+      "New point = (−1+4,3−2) = (3,1)",
+      "Answer: (3,1)"
+    ],
+    "distractors": [
+      "Answer: (−3,1)",
+      "Answer: (3,−1)",
+      "Answer: (−1,1)"
+    ],
+    "category": "Transformations - Translations",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Reflect the point (−5,6) over the x-axis.",
+    "solution": [
+      "Reflection over x-axis = (−5,−6)",
+      "Answer: (−5,−6)"
+    ],
+    "distractors": [
+      "Answer: (5,6)",
+      "Answer: (5,−6)",
+      "Answer: (−5,6)"
+    ],
+    "category": "Transformations - Reflections",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Rotate the point (3,−7) 180° around the origin.",
+    "solution": [
+      "New point = (−3,7)",
+      "Answer: (−3,7)"
+    ],
+    "distractors": [
+      "Answer: (3,7)",
+      "Answer: (−3,−7)",
+      "Answer: (3,−7)"
+    ],
+    "category": "Transformations - Rotations",
+    "difficulty": "Medium"
+  },
+  {
+    "text": "What is the mode of the data set: 1, 2, 2, 3, 3, 3, 4, 5.",
+    "solution": [
+      "Mode = 3",
+      "Answer: 3"
+    ],
+    "distractors": [
+      "Answer: 2",
+      "Answer: 1",
+      "Answer: 4"
+    ],
+    "category": "Data Handling - Central Tendency",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Calculate the mean of 7, 9, 11, 13, 15.",
+    "solution": [
+      "Mean = (7+9+11+13+15)/5 = 55/5 = 11",
+      "Answer: 11"
+    ],
+    "distractors": [
+      "Answer: 10",
+      "Answer: 12",
+      "Answer: 13"
+    ],
+    "category": "Data Handling - Mean",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Find the median of the series: 3, 6, 9, 12, 15, 18.",
+    "solution": [
+      "Median = average of the two middle numbers = (9+12)/2 = 10.5",
+      "Answer: 10.5"
+    ],
+    "distractors": [
+      "Answer: 10",
+      "Answer: 11",
+      "Answer: 12"
+    ],
+    "category": "Data Handling - Median",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "What is the probability of rolling a 4 or 6 on a die?",
+    "solution": [
+      "Probability = 2/6 = 1/3",
+      "Answer: 1/3"
+    ],
+    "distractors": [
+      "Answer: 1/2",
+      "Answer: 1/4",
+      "Answer: 1/6"
+    ],
+    "category": "Probability",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "If the probability of an event is 0.25, express it as a percentage.",
+    "solution": [
+      "0.25 × 100% = 25%",
+      "Answer: 25%"
+    ],
+    "distractors": [
+      "Answer: 20%",
+      "Answer: 30%",
+      "Answer: 35%"
+    ],
+    "category": "Probability",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Translate the point (−1,3) 4 units to the right and 2 units down.",
+    "solution": [
+      "New point = (−1+4,3−2) = (3,1)",
+      "Answer: (3,1)"
+    ],
+    "distractors": [
+      "Answer: (−3,1)",
+      "Answer: (3,−1)",
+      "Answer: (−1,1)"
+    ],
+    "category": "Transformations - Translations",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Reflect the point (−5,6) over the x-axis.",
+    "solution": [
+      "Reflection over x-axis = (−5,−6)",
+      "Answer: (−5,−6)"
+    ],
+    "distractors": [
+      "Answer: (5,6)",
+      "Answer: (5,−6)",
+      "Answer: (−5,6)"
+    ],
+    "category": "Transformations - Reflections",
+    "difficulty": "Easy"
+  },
+  {
+    "text": "Rotate the point (3,−7) 180° around the origin.",
+    "solution": [
+      "New point = (−3,7)",
+      "Answer: (−3,7)"
+    ],
+    "distractors": [
+      "Answer: (3,7)",
+      "Answer: (−3,−7)",
+      "Answer: (3,−7)"
+    ],
+    "category": "Transformations - Rotations",
+    "difficulty": "Medium"
+  }
+  ];
 
-  // Firestore log level
-  setLogLevel('debug');
+   const firebaseConfig = {
+            apiKey: "AIzaSyAl_inLrHEvA05aRuizjIScPWs8orhaezc",
+            authDomain: "eduquestmaths.firebaseapp.com",
+            projectId: "eduquestmaths",
+            storageBucket: "eduquestmaths.firebasestorage.app",
+            messagingSenderId: "38155185854",
+            appId: "1:38155185854:web:48e596eb6a39c4bac578ef",
+            measurementId: "G-8K5YDC8H6X"
+  };
 
-  // --- Firebase and Firestore Setup ---
-  let db, auth;
-  let userId = 'loading...';
-  let isAuthReady = false;
-  const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  
+  const drawPile = document.getElementById('drawPile');
+  const chainSlots = document.getElementById('chainSlots');
+  const discardPile = document.getElementById('discardPile');
+  const questionTextEl = document.getElementById('questionText');
+  const questionHintEl = document.getElementById('questionHint');
+  const correctScoreEl = document.getElementById('correctScoreEl');
+  const incorrectScoreEl = document.getElementById('incorrectScoreEl');
+  const timerEl = document.getElementById('timerEl');
+  const categorySelect = document.getElementById('categorySelect');
+  const difficultySelect = document.getElementById('difficultySelect');
+  const hintBtn = document.getElementById('hintBtn');
+  const geminiHintBtn = document.getElementById('geminiHintBtn');
+  const speakBtn = document.getElementById('speakBtn');
+  const restartBtn = document.getElementById('restartBtn');
+  const nextBtn = document.getElementById('nextBtn');
   const userIdDisplay = document.getElementById('userIdDisplay');
 
-  // Firestore functions must be defined before they are called
-  const saveScores = async () => {
-    if (!isAuthReady) return;
-    try {
-      const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/gameData/solitaireScores`);
-      await setDoc(userDocRef, {
-        correctScore: correctScore,
-        incorrectScore: incorrectScore,
-        lastUpdated: new Date()
-      }, { merge: true });
-      console.log("Scores saved successfully!");
-    } catch (e) {
-      console.error("Error saving scores:", e);
-    }
-  };
-
-  const loadScores = async () => {
-    if (!isAuthReady) return;
-    try {
-      const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/gameData/solitaireScores`);
-      const docSnap = await getDoc(userDocRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        correctScore = data.correctScore || 0;
-        incorrectScore = data.incorrectScore || 0;
-        correctScoreEl.textContent = correctScore;
-        incorrectScoreEl.textContent = incorrectScore;
-        console.log("Scores loaded successfully!");
-      }
-    } catch (e) {
-      console.error("Error loading scores:", e);
-    }
-  };
-
-  try {
-      const firebaseConfig = JSON.parse(__firebase_config);
-      const app = initializeApp(firebaseConfig);
-      db = getFirestore(app);
-      auth = getAuth(app);
-      setPersistence(auth, browserSessionPersistence);
-      
-      onAuthStateChanged(auth, async (user) => {
-          if (user) {
-              userId = user.uid;
-              userIdDisplay.textContent = `User ID: ${userId}`;
-              isAuthReady = true;
-              await loadScores();
-          } else {
-              userId = crypto.randomUUID();
-              userIdDisplay.textContent = `User ID: ${userId}`;
-              isAuthReady = true;
-          }
-      });
-
-      if (typeof __initial_auth_token !== 'undefined') {
-          await signInWithCustomToken(auth, __initial_auth_token);
-      } else {
-          await signInAnonymously(auth);
-      }
-  } catch (e) {
-      console.error("Firebase initialization failed:", e);
-      userIdDisplay.textContent = 'Auth failed, using temporary ID';
-      userId = 'temp-user-' + crypto.randomUUID();
-      isAuthReady = true;
-  }
-
-  // --- Game State & Elements ---
-  const questionText = document.getElementById("questionText");
-  const questionHint = document.getElementById("questionHint");
-  const drawPile = document.getElementById("drawPile");
-  const chainSlots = document.getElementById("chainSlots");
-  const discardPile = document.getElementById("discardPile");
-  const timerEl = document.getElementById("timerEl");
-  const correctScoreEl = document.getElementById("correctScoreEl");
-  const incorrectScoreEl = document.getElementById("incorrectScoreEl");
-  const hintBtn = document.getElementById("hintBtn");
-  const restartBtn = document.getElementById("restartBtn");
-  const nextBtn = document.getElementById("nextBtn");
-  const categorySelect = document.getElementById("categorySelect");
-  const difficultySelect = document.getElementById("difficultySelect");
-
-  let questions = [];
   let currentQuestion = null;
   let drawCards = [];
   let chainCards = [];
   let discardCards = [];
-  let time = 60;
-  let timerId = null;
   let correctScore = 0;
   let incorrectScore = 0;
-
-  // --- Game Logic ---
-  function loadQuestions() {
-    questions = questionsData;
-  }
-
-  function initSelectors() {
-    const categories = [...new Set(questions.map(q => q.category))];
-    const difficulties = [...new Set(questions.map(q => q.difficulty))];
-
-    // Add 'All' options
-    categories.unshift("All");
-    difficulties.unshift("All");
-
-    categorySelect.innerHTML = '';
-    difficulties.forEach(diff => {
-      const option = document.createElement('option');
-      option.value = diff;
-      option.textContent = diff;
-      difficultySelect.appendChild(option);
-    });
-
-    categories.forEach(cat => {
-      const option = document.createElement('option');
-      option.value = cat;
-      option.textContent = cat;
-      categorySelect.appendChild(option);
-    });
-  }
+  let gameTimer = 60;
+  let timerInterval = null;
+  let user = null;
 
   function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [array[i], array[j]] = [array[j], array[i]];
     }
-  }
-
-  function loadQuestion() {
-    // Clear previous state
-    clearInterval(timerId);
-    timerId = null;
-    time = 60;
-    timerEl.textContent = time;
-    drawCards = [];
-    chainCards = [];
-    discardCards = [];
-    nextBtn.disabled = true;
-    questionHint.textContent = '';
-    
-    // Filter questions based on selected category and difficulty
-    const selectedCategory = categorySelect.value;
-    const selectedDifficulty = difficultySelect.value;
-    const filteredQuestions = questions.filter(q =>
-      (selectedCategory === 'All' || q.category === selectedCategory) &&
-      (selectedDifficulty === 'All' || q.difficulty === selectedDifficulty)
-    );
-    
-    // Select a random question
-    if (filteredQuestions.length === 0) {
-      toast("No questions found for this selection.");
-      return;
-    }
-    currentQuestion = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
-
-    // Populate question and cards
-    questionText.innerHTML = currentQuestion.text;
-
-    // Create cards for solution and distractors
-    const allCards = currentQuestion.solution.map((s, i) => ({
-      id: `s-${i}`,
-      text: s,
-      isCorrect: true,
-      originalIndex: i
-    })).concat(
-      currentQuestion.distractors.map((d, i) => ({
-        id: `d-${i}`,
-        text: d,
-        isCorrect: false
-      }))
-    );
-    shuffle(allCards);
-    drawCards = allCards;
-    chainCards = Array(currentQuestion.solution.length).fill(null);
-    
-    renderPiles();
-    renderChainSlots();
-    
-    // Render math expressions
-    if (typeof MathJax !== 'undefined') {
-      MathJax.typesetPromise();
-    }
+    return array;
   }
 
   function renderPiles() {
     drawPile.innerHTML = '';
+    chainSlots.innerHTML = '';
     discardPile.innerHTML = '';
 
     drawCards.forEach(card => {
-      const cardEl = createCardElement(card);
-      drawPile.appendChild(cardEl);
+      drawPile.appendChild(createCardElement(card));
     });
-    
-    discardCards.forEach(card => {
-      const cardEl = createCardElement(card);
-      discardPile.appendChild(cardEl);
-    });
-    
-    // Re-render math expressions after new cards are added
-    if (typeof MathJax !== 'undefined') {
-      MathJax.typesetPromise();
-    }
-  }
 
-  function renderChainSlots() {
-    chainSlots.innerHTML = '';
     chainCards.forEach((card, index) => {
-      const slot = document.createElement("div");
-      slot.classList.add("card-slot");
+      const slot = document.createElement('div');
+      slot.classList.add('card-slot');
       slot.dataset.index = index;
-      slot.addEventListener("dragover", e => e.preventDefault());
-      slot.addEventListener("drop", onSlotDrop);
       if (card) {
-        const cardEl = createCardElement(card);
-        slot.appendChild(cardEl);
+        slot.appendChild(createCardElement(card));
+        slot.classList.add('correct');
+      } else {
+        slot.addEventListener('dragover', e => e.preventDefault());
+        slot.addEventListener('drop', handleDrop);
       }
       chainSlots.appendChild(slot);
     });
-    // Re-render math expressions after new slots are added
-    if (typeof MathJax !== 'undefined') {
-      MathJax.typesetPromise();
-    }
+
+    discardCards.forEach(card => {
+      discardPile.appendChild(createCardElement(card));
+    });
+
+    updateScores();
+    updateButtons();
   }
-  
+
   function createCardElement(card) {
-    const el = document.createElement("div");
-    el.classList.add("card");
-    el.textContent = card.text;
+    const el = document.createElement('div');
+    el.classList.add('card');
     el.draggable = true;
     el.dataset.id = card.id;
-    el.addEventListener("dragstart", e => {
-      e.dataTransfer.setData("text/plain", card.id);
-      e.dataTransfer.dropEffect = "move";
-      setTimeout(() => el.classList.add("dragging"), 0);
-    });
-    el.addEventListener("dragend", () => el.classList.remove("dragging"));
+    el.innerHTML = `<span>${card.text}</span>`;
+    el.addEventListener('dragstart', handleDragStart);
     return el;
   }
-  
-  function onSlotDrop(e) {
+
+  function handleDragStart(e) {
+    e.dataTransfer.setData('text/plain', e.target.dataset.id);
+    e.dataTransfer.effectAllowed = 'move';
+  }
+
+  function handleDrop(e) {
     e.preventDefault();
-    startTimerOnce();
-    const slot = e.currentTarget;
-    const cardId = e.dataTransfer.getData("text/plain");
-    const card = drawCards.find(c => c.id === cardId);
-    
-    if (card) {
-      const slotIndex = parseInt(slot.dataset.index, 10);
-      
-      // Check if the card is a valid next step
-      let isCorrectOrder = false;
-      if (card.isCorrect && card.originalIndex === slotIndex && chainCards[slotIndex] === null) {
-        isCorrectOrder = true;
-      }
-      
-      if (isCorrectOrder) {
-        chainCards[slotIndex] = card;
-        drawCards = drawCards.filter(c => c.id !== cardId);
-        
-        slot.innerHTML = '';
-        const droppedCardEl = createCardElement(card);
-        slot.appendChild(droppedCardEl);
-        slot.classList.add("correct");
-        
-        checkWinCondition();
-      } else {
-        const cardEl = drawPile.querySelector(`[data-id='${cardId}']`);
-        if(cardEl) {
-          cardEl.remove();
+    const cardId = e.dataTransfer.getData('text/plain');
+    const droppedSlotIndex = parseInt(e.target.closest('.card-slot').dataset.index);
+
+    const draggedCard = drawCards.find(c => c.id === cardId) || discardCards.find(c => c.id === cardId);
+
+    if (draggedCard) {
+      if (draggedCard.id === currentQuestion.solution[droppedSlotIndex].id) {
+        // Correct drop
+        const cardIndex = drawCards.findIndex(c => c.id === cardId);
+        if (cardIndex !== -1) {
+          drawCards.splice(cardIndex, 1);
+        } else {
+          const discardIndex = discardCards.findIndex(c => c.id === cardId);
+          discardCards.splice(discardIndex, 1);
         }
-        discardCards.push(card);
-        discardPile.appendChild(createCardElement(card));
         
-        toast("❌ Incorrect step. Try again.", 1500);
+        chainCards[droppedSlotIndex] = draggedCard;
+        showToast('✅ Correct!');
+        checkIfComplete();
+      } else {
+        // Incorrect drop
+        incorrectScore++;
+        showToast('❌ Incorrect, try again.');
       }
       renderPiles();
     }
   }
 
-  function checkWinCondition() {
-    const allSlotsFilled = chainCards.every(card => card !== null);
-    if (allSlotsFilled) {
-      clearInterval(timerId);
-      lockGame();
-      correctScore++;
-      correctScoreEl.textContent = correctScore;
-      saveScores();
-      toast("🎉 Correct! All steps are in place.", 2500);
+  function checkIfComplete() {
+    const isComplete = chainCards.every(card => card !== null);
+    if (isComplete) {
+      showToast('🎉 Well done, question solved!');
       nextBtn.disabled = false;
+      hintBtn.disabled = true;
+      geminiHintBtn.disabled = true;
+      clearInterval(timerInterval);
     }
   }
 
-  function highlightHint() {
-    if (chainCards.every(c => c !== null)) return;
-    const nextEmptySlotIndex = chainCards.findIndex(c => c === null);
+  function updateScores() {
+    correctScoreEl.textContent = currentQuestion.solution.length - chainCards.filter(c => c === null).length;
+    incorrectScoreEl.textContent = incorrectScore;
+  }
+
+  function updateButtons() {
+    hintBtn.disabled = false;
+    geminiHintBtn.disabled = false;
+    speakBtn.disabled = false;
+  }
+
+  function loadQuestions() {
+    const categories = [...new Set(questionsData.map(q => q.category))];
+    const difficulties = [...new Set(questionsData.map(q => q.difficulty))];
+
+    categorySelect.innerHTML = categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+    difficultySelect.innerHTML = difficulties.map(diff => `<option value="${diff}">${diff}</option>`).join('');
+  }
+
+  function loadQuestion() {
+    restartTimer();
+    nextBtn.disabled = true;
+    incorrectScore = 0;
+
+    const selectedCategory = categorySelect.value;
+    const selectedDifficulty = difficultySelect.value;
+    const filteredQuestions = questionsData.filter(q => 
+      q.category === selectedCategory && q.difficulty === selectedDifficulty
+    );
+
+    if (filteredQuestions.length === 0) {
+      questionTextEl.textContent = "No questions available for this combination.";
+      return;
+    }
+
+    const randomQuestion = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
+    currentQuestion = randomQuestion;
+
+    questionTextEl.textContent = currentQuestion.text;
+    questionHintEl.textContent = '';
+
+    const solutionSteps = currentQuestion.solution.map((step, index) => ({
+      id: `solution-${index}`,
+      text: step
+    }));
+    const distractors = currentQuestion.distractors.map((distractor, index) => ({
+      id: `distractor-${index}`,
+      text: distractor
+    }));
+
+    drawCards = shuffle([...solutionSteps, ...distractors]);
+    chainCards = Array(solutionSteps.length).fill(null);
+    discardCards = [];
     
-    if (nextEmptySlotIndex !== -1) {
-      const hintText = currentQuestion.solution[nextEmptySlotIndex];
-      questionHint.innerHTML = `Hint: Find the card that says "${hintText}" and place it in the next empty slot.`;
-    }
-    toast("💡 Hint revealed", 2500);
+    renderPiles();
+    updateButtons();
   }
 
-  function startTimerOnce() {
-    if (timerId) return;
-    timerId = setInterval(() => {
-      time--;
-      timerEl.textContent = time;
-      if (time <= 0) {
-        clearInterval(timerId);
-        lockGame();
-        toast("⏱ Time up!");
-        nextBtn.disabled = false;
-        incorrectScore++;
-        incorrectScoreEl.textContent = incorrectScore;
-        saveScores();
+  function restartTimer() {
+    clearInterval(timerInterval);
+    gameTimer = 60;
+    timerEl.textContent = gameTimer;
+    timerInterval = setInterval(() => {
+      gameTimer--;
+      timerEl.textContent = gameTimer;
+      if (gameTimer <= 0) {
+        clearInterval(timerInterval);
+        showToast('Time’s up! The correct solution has been highlighted.');
+        highlightCorrectSolution();
       }
     }, 1000);
   }
 
-  function lockGame() {
-    document.querySelectorAll(".card").forEach(el => el.draggable = false);
-    document.querySelectorAll(".card-slot").forEach(slot => {
-        slot.removeEventListener("drop", onSlotDrop);
-        slot.classList.remove('drag-over');
-    });
+  function highlightCorrectSolution() {
+    chainCards = currentQuestion.solution.map((step, index) => ({
+      id: `solution-${index}`,
+      text: step
+    }));
+    drawCards = [];
+    discardCards = [];
+    renderPiles();
+    nextBtn.disabled = false;
+    hintBtn.disabled = true;
+    geminiHintBtn.disabled = true;
   }
-  
-  function toast(msg, duration = 3000) {
+
+  function highlightHint() {
+    const nextEmptySlotIndex = chainCards.findIndex(c => c === null);
+    if (nextEmptySlotIndex !== -1) {
+      questionHintEl.textContent = currentQuestion.solution[nextEmptySlotIndex].text;
+    } else {
+      showToast('All steps have been completed!');
+    }
+  }
+
+  function speakQuestion() {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(currentQuestion.text);
+      utterance.lang = 'en-US'; 
+      window.speechSynthesis.speak(utterance);
+    } else {
+      showToast('Speech synthesis is not supported in this browser.');
+    }
+  }
+
+  function showToast(msg, duration = 3000) {
     const container = document.querySelector('.toast-container');
     const el = document.createElement('div');
     el.classList.add('toast');
@@ -976,11 +2524,13 @@
     container.appendChild(el);
     setTimeout(() => el.remove(), duration);
   }
-  
+
   /* ===========================
      EVENT LISTENERS & INIT
   =========================== */
   hintBtn.addEventListener("click", highlightHint);
+  geminiHintBtn.addEventListener("click", getGeminiHint);
+  speakBtn.addEventListener("click", speakQuestion);
   restartBtn.addEventListener("click", loadQuestion);
   nextBtn.addEventListener("click", loadQuestion);
   categorySelect.addEventListener("change", loadQuestion);
@@ -995,23 +2545,50 @@
       const card = discardCards.splice(cardIndex, 1)[0];
       drawCards.push(card);
       renderPiles();
-      toast("✅ Card restored to draw pile!", 1200);
+      showToast("✅ Step restored - try again!", 1200);
     }
   });
   
   // Initialize
   window.onload = function() {
     loadQuestions();
-    initSelectors();
     loadQuestion();
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js')
-        .then(reg => console.log('Service Worker registered', reg))
-        .catch(err => console.error('Service Worker registration failed', err));
+        .then(reg => console.log('Service Worker Registered'))
+        .catch(err => console.log('Service Worker Registration Failed', err));
     }
   };
-  
-</script>
 
+  function getGeminiHint() {
+    geminiHintBtn.disabled = true;
+    const originalText = geminiHintBtn.textContent;
+    geminiHintBtn.textContent = 'Hint is being generated...';
+    
+    const nextEmptySlotIndex = chainCards.findIndex(c => c === null);
+    if (nextEmptySlotIndex === -1) {
+        showToast("All steps have been completed!");
+        geminiHintBtn.disabled = false;
+        geminiHintBtn.textContent = originalText;
+        return;
+    }
+
+    const prompt = `The math question is: "${currentQuestion.text}". The solution is presented in steps. The first ${nextEmptySlotIndex} steps have already been placed. Give a short, one-sentence hint about what the next step is, using simple language. Do not provide the solution or the final answer, just a general hint for the next step.`;
+
+    // Assume an API call to Gemini is made here
+    // For now, this is a placeholder
+    // gemini.generateText({ prompt: prompt }).then(response => {
+    //   questionHintEl.textContent = response.text;
+    //   geminiHintBtn.disabled = false;
+    //   geminiHintBtn.textContent = originalText;
+    // });
+    
+    // Placeholder response
+    const hint = "Think about the first step of solving the problem.";
+    questionHintEl.textContent = hint;
+    geminiHintBtn.disabled = false;
+    geminiHintBtn.textContent = originalText;
+  }
+</script>
 </body>
 </html>
